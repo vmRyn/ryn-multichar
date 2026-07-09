@@ -1,0 +1,7 @@
+web/node_modules/
+web/dist/assets/
+!web/dist/index.html
+!web/dist/.gitkeep
+
+# Internal planning doc — not for distribution
+plan.md
