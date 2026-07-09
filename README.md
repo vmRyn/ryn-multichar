@@ -1,6 +1,32 @@
 # ryn-multichar
 
+[![GitHub](https://img.shields.io/badge/GitHub-open%20source-blue?logo=github)](https://github.com/vmRyn/ryn-multichar)
+[![Version](https://img.shields.io/badge/version-1.0.0-green)](https://github.com/vmRyn/ryn-multichar)
+[![Frameworks](https://img.shields.io/badge/frameworks-QBox%20%7C%20QB%20%7C%20ESX-orange)](https://github.com/vmRyn/ryn-multichar)
+[![License](https://img.shields.io/badge/license-no%20redistribution-lightgrey)](LICENSE)
+
 A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **ESX**. One resource replaces the usual `qb-multicharacter` + `qb-spawn` stack with a single 3D scene, glassmorphic NUI, and config-driven setup.
+
+**Free to download and use** on your own FiveM server — no purchase required. Redistribution is not allowed; get it from the official repo only.
+
+## Table of contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Scene tuning](#scene-tuning)
+- [Commands](#commands)
+- [Tebex](#tebex)
+- [Exports](#exports)
+- [Events](#events)
+- [Project structure](#project-structure)
+- [Development](#development)
+- [Testing checklist](#testing-checklist)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Credits](#credits)
+- [License](#license)
 
 ---
 
@@ -12,7 +38,7 @@ A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **E
 - **Appearance support** — auto-detect illenium-appearance, fivem-appearance, qb-clothing, skinchanger
 - **Spawn options** — last location, public spawns, housing hooks (qb-houses, apartments, ps-housing)
 - **Slot management** — default limits, per-license overrides, Tebex, admin UI
-- **Premium polish** — photo mode, per-character poses (props/vehicles), weather/time override
+- **Extra features** — photo mode, per-character poses (props/vehicles), weather/time override
 - **Locales** — English + Spanish (NUI and server notifications)
 - **Optional** — Discord webhooks, playtime tracking, Kenney UI sounds
 
@@ -43,9 +69,14 @@ If upgrading an existing install, ensure the `ryn_multichar_tebex_pending` table
 
 ### 2. Install the resource
 
-1. Clone or copy this repo into your server's `resources` folder.
-2. The FiveM resource name is **`ryn-multichar`** (set via `fxmanifest.lua`).
-3. Pre-built NUI is in `web/dist/`. Rebuild only if you edit the React source:
+```bash
+git clone https://github.com/vmRyn/ryn-multichar.git
+```
+
+Or download a ZIP from [github.com/vmRyn/ryn-multichar](https://github.com/vmRyn/ryn-multichar).
+
+1. Place the **`ryn-multichar`** folder in your server's `resources` directory. The folder name must match the resource name in `fxmanifest.lua` so `ensure ryn-multichar` works.
+2. Pre-built NUI is in `web/dist/`. Rebuild only if you edit the React source:
 
    ```bash
    cd web
@@ -104,8 +135,7 @@ Full reference: [CONFIG.md](CONFIG.md)
 ```lua
 -- config/shared.lua
 Config.Framework = 'auto'
-Config.UI.locale = 'en'        -- 'en' | 'es'
-Config.ActiveScene = 'apartment'  -- in config/scenes.lua
+Config.UI.locale = 'en'   -- 'en' | 'es'
 
 Config.Slots = {
     default = 3,
@@ -114,6 +144,11 @@ Config.Slots = {
         -- ['license2:abc...'] = 5,
     },
 }
+```
+
+```lua
+-- config/scenes.lua
+Config.ActiveScene = 'apartment'   -- apartment | studio | rooftop | void
 ```
 
 ---
@@ -209,6 +244,7 @@ ryn-multichar/
 ├── shared/          # Utils + config validation
 ├── web/             # React NUI (src + dist)
 ├── sql/             # Database schema
+├── LICENSE
 ├── README.md
 └── CONFIG.md
 ```
@@ -228,7 +264,9 @@ Open `http://localhost:5173/` and use the **Dev** panel (top-right) to switch sc
 
 ---
 
-## Testing checklist (QBox)
+## Testing checklist
+
+Primary validation path is QBox; QB and ESX should follow the same flow after framework config.
 
 - [ ] SQL tables created
 - [ ] Resource starts; framework detected in console
@@ -259,6 +297,24 @@ Open `http://localhost:5173/` and use the **Dev** panel (top-right) to switch sc
 
 ---
 
+## Contributing
+
+Bug reports, feature requests, and pull requests are welcome on [GitHub](https://github.com/vmRyn/ryn-multichar).
+
+When opening a PR:
+
+1. Describe the framework you tested against (QBox, QB, or ESX).
+2. If you change the NUI, run `npm run build` in `web/` and include the updated `web/dist/` output.
+3. Keep config changes documented in [CONFIG.md](CONFIG.md) when adding new options.
+
+---
+
+## Credits
+
+- UI sound effects: [Kenney UI SFX Set](https://kenney.nl/assets/ui-audio) (CC0)
+
+---
+
 ## License
 
-Private / personal server use.
+Free for personal and commercial use on **your own server(s)**. You may modify it for your server. **Redistribution is not permitted** — do not re-upload, mirror, or resell this resource. See [LICENSE](LICENSE) for full terms. Official source: [github.com/vmRyn/ryn-multichar](https://github.com/vmRyn/ryn-multichar).
