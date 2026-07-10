@@ -5,6 +5,7 @@ import { CharacterCard } from './CharacterCard'
 import { CharacterActions } from './CharacterActions'
 import { KeyboardHints } from './KeyboardHints'
 import { SlotSkeleton } from './SlotSkeleton'
+import { cn } from '@/lib/utils'
 
 interface CharacterDockProps {
   characters: Character[]
@@ -40,10 +41,8 @@ export function CharacterDock({
   const slots = Array.from({ length: slotLimit }, (_, i) => i + 1)
   const activeCharacter = getCharacterForSlot(characters, activeSlot)
 
-  if (hidden) return null
-
   return (
-    <div className="ryn-dock-wrap">
+    <div className={cn('ryn-dock-wrap', hidden && 'ryn-dock-wrap--hidden')}>
       <div className="ryn-command-deck" data-animate="dock">
         <div className="ryn-command-deck__surface">
           <div className="ryn-command-deck__accent" aria-hidden />

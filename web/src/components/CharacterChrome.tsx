@@ -1,16 +1,19 @@
 import { useLocale } from '@/hooks/useLocale'
 
+import { cn } from '@/lib/utils'
+
 interface CharacterChromeProps {
   characterCount: number
   slotLimit: number
   logo?: string
+  hidden?: boolean
 }
 
-export function CharacterChrome({ characterCount, slotLimit, logo }: CharacterChromeProps) {
+export function CharacterChrome({ characterCount, slotLimit, logo, hidden = false }: CharacterChromeProps) {
   const { t } = useLocale()
 
   return (
-    <div className="ryn-chrome" data-animate="chrome">
+    <div className={cn('ryn-chrome', hidden && 'ryn-chrome--hidden')} data-animate="chrome">
       <div className="ryn-brand">
         {logo ? (
           <img src={logo} alt="" className="ryn-brand-logo" />

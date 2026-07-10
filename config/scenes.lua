@@ -17,11 +17,10 @@ Config.ScenePresets = {
         slots = {
             [1] = {
                 ped = vector4(-786.49, 315.79, 217.64, 270.0),
-                posePreset = 'sports_car',
                 camera = {
-                    pos = vector3(-784.85, 315.79, 218.15),
-                    rot = vector3(-3.0, 0.0, 90.0),
-                    fov = 35.0,
+                    pos = vector3(-782.35, 315.79, 218.35),
+                    rot = vector3(-4.0, 0.0, 90.0),
+                    fov = 44.0,
                 },
                 idleAnim = {
                     dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
@@ -30,23 +29,22 @@ Config.ScenePresets = {
             },
             [2] = {
                 ped = vector4(-788.65, 315.79, 217.64, 90.0),
-                posePreset = 'lean_phone',
                 camera = {
-                    pos = vector3(-790.35, 315.79, 218.15),
-                    rot = vector3(-3.0, 0.0, 270.0),
-                    fov = 35.0,
+                    pos = vector3(-786.0, 315.79, 218.35),
+                    rot = vector3(-4.0, 0.0, 270.0),
+                    fov = 44.0,
                 },
                 idleAnim = {
-                    dict = 'anim@amb@world_human_leaning@male@wall@back@mobile@base',
+                    dict = 'amb@world_human_leaning@male@wall@back@mobile@base',
                     name = 'base',
                 },
             },
             [3] = {
                 ped = vector4(-787.3, 318.15, 217.64, 180.0),
                 camera = {
-                    pos = vector3(-787.3, 316.25, 218.15),
-                    rot = vector3(-3.0, 0.0, 0.0),
-                    fov = 38.0,
+                    pos = vector3(-787.3, 320.0, 218.35),
+                    rot = vector3(-4.0, 0.0, 180.0),
+                    fov = 44.0,
                 },
                 idleAnim = {
                     dict = 'anim@amb@casino@hangout@ped_female@stand@02a@idles',

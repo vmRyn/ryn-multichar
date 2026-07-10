@@ -2,6 +2,15 @@ lib.callback.register('ryn-multichar:server:getCharacters', function(source)
     return Characters.GetAll(source)
 end)
 
+lib.callback.register('ryn-multichar:server:prepareCharacterSelect', function(source)
+    local adapter = Bridge.GetServer()
+    if adapter and adapter.Logout then
+        adapter.Logout(source)
+        Wait(200)
+    end
+    return true
+end)
+
 lib.callback.register('ryn-multichar:server:createCharacter', function(source, data)
     return Characters.Create(source, data)
 end)

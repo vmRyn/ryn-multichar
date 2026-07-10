@@ -42,7 +42,7 @@ Config.ScenePoses = {
         lean_phone = {
             label = 'Lean & Phone',
             anim = {
-                dict = 'anim@amb@world_human_leaning@male@wall@back@mobile@base',
+                dict = 'amb@world_human_leaning@male@wall@back@mobile@base',
                 name = 'base',
                 flag = 1,
             },

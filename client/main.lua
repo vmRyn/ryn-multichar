@@ -1,8 +1,26 @@
 local isOpen = false
+local hidePedThreadActive = false
 
 local function shutdownLoadingScreen()
     ShutdownLoadingScreen()
     ShutdownLoadingScreenNui()
+end
+
+local function startPlayerPedHideLoop()
+    if hidePedThreadActive then return end
+    hidePedThreadActive = true
+
+    CreateThread(function()
+        while isOpen do
+            Scene.KeepPlayerPedHidden()
+            Wait(0)
+        end
+        hidePedThreadActive = false
+    end)
+end
+
+local function prepareCharacterSelect()
+    lib.callback.await('ryn-multichar:server:prepareCharacterSelect', false)
 end
 
 local function openCharacterSelect()
@@ -11,11 +29,17 @@ local function openCharacterSelect()
 
     pcall(function() exports.spawnmanager:setAutoSpawn(false) end)
 
+    prepareCharacterSelect()
     Scene.Load()
+    startPlayerPedHideLoop()
 
     local characters, slotLimit = lib.callback.await('ryn-multichar:server:getCharacters', false)
-    Preview.SpawnAll(characters or {})
-    Preview.FocusSlot(1)
+    Preview.SpawnAll(characters or {}, 1)
+    Camera.Activate(1)
+
+    if IsScreenFadedOut() then
+        DoScreenFadeIn(500)
+    end
 
     SetNuiFocus(true, true)
     SendNUIMessage({
@@ -99,7 +123,12 @@ CreateThread(function()
 
     while not Bridge.name do Wait(100) end
     Wait(500)
-    openCharacterSelect()
+
+    local ok, err = pcall(openCharacterSelect)
+    if not ok then
+        print(('^1[ryn-multichar] Failed to open character select: %s^0'):format(err))
+        shutdownLoadingScreen()
+    end
 end)
 
 AddEventHandler('onResourceStop', function(resource)

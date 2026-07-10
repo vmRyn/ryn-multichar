@@ -13,10 +13,9 @@ function Photo.Enable(slotIndex)
 end
 
 function Photo.Disable()
-    if not Photo.active then return end
-
+    local slotIndex = Photo.slotIndex or Camera.focusSlot or 1
     Photo.active = false
-    Camera.DisablePhotoMode(Photo.slotIndex)
+    Camera.DisablePhotoMode(slotIndex)
 end
 
 function Photo.Adjust(data)

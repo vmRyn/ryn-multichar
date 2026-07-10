@@ -60,6 +60,7 @@ server_scripts {
     'server/tebex.lua',
     'server/admin.lua',
     'server/admin_panel.lua',
+    'server/scene_tools.lua',
     'server/main.lua',
 }
 

@@ -134,6 +134,15 @@ function MulticharApp({
     setAdminOpen(false)
   })
 
+  useNuiEvent<{ enabled?: boolean }>('photoMode', (payload) => {
+    setPhotoModeActive(!!payload.enabled)
+    if (!payload.enabled) {
+      requestAnimationFrame(() => {
+        if (appRef.current) animateCharacterEntrance(appRef.current)
+      })
+    }
+  })
+
   useEffect(() => {
     if (!dev) return
     document.body.classList.add('dev-preview')
@@ -213,10 +222,13 @@ function MulticharApp({
 
   const handleCreationSubmit = async (data: Record<string, string>) => {
     try {
-      const result = await fetchNui<{ success: boolean; error?: string }>('createCharacter', {
+      const result = await fetchNui<{ success: boolean; pending?: boolean; error?: string }>('createCharacter', {
         ...data,
         slotIndex: activeSlot,
       })
+      if (result?.success && result.pending) {
+        return
+      }
       if (result?.success) {
         playUiSound('confirm')
         notifySuccess(t('toastCreated'), t('toastCreatedDesc'))
@@ -334,13 +346,12 @@ function MulticharApp({
 
       {(screen === 'characterSelect' || deleteOpen || infoOpen) && (
         <>
-          {!photoModeActive && (
-            <CharacterChrome
+          <CharacterChrome
               characterCount={characters.length}
               slotLimit={slotLimit}
               logo={theme?.logo}
+              hidden={photoModeActive}
             />
-          )}
           <CharacterDock
             characters={characters}
             slotLimit={slotLimit}

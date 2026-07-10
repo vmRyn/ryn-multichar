@@ -101,7 +101,9 @@ end
 
 function Camera.DisablePhotoMode(slotIndex)
     Camera.photoMode = false
-    Camera.FocusSlot(slotIndex or Camera.focusSlot or 1)
+    Camera.previewing = false
+    Camera.transitioning = false
+    Camera.Activate(slotIndex or Camera.focusSlot or 1)
 end
 
 function Camera.AdjustOrbit(deltaYaw, deltaPitch, deltaZoom, deltaFov)
@@ -227,7 +229,13 @@ function Camera.FocusSlot(slotIndex)
 
     local camConfig = Scene.GetSlotCamera(slotIndex)
     if not camConfig then return end
-    Camera.TransitionTo(camConfig.pos, camConfig.rot, camConfig.fov or 40.0, 750)
+
+    if not Camera.cam or not Camera.active then
+        Camera.Activate(slotIndex)
+        return
+    end
+
+    Camera.TransitionTo(camConfig.pos, camConfig.rot, camConfig.fov or 40.0, 400)
 end
 
 function Camera.PreviewCoords(coords)

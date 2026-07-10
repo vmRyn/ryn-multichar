@@ -1,5 +1,12 @@
 local adapter = {}
-local QBCore = exports['qb-core']:GetCoreObject()
+local QBCore
+
+local function getQBCore()
+    if not QBCore then
+        QBCore = exports['qb-core']:GetCoreObject()
+    end
+    return QBCore
+end
 
 adapter.HandlesStarterItems = false
 
@@ -65,12 +72,12 @@ function adapter.CreateCharacter(source, data)
         end
     end
 
-    local success = QBCore.Player.Login(source, false, newData)
+    local success = getQBCore().Player.Login(source, false, newData)
     if not success then
         return nil, 'create_failed'
     end
 
-    local player = QBCore.Functions.GetPlayer(source)
+    local player = getQBCore().Functions.GetPlayer(source)
     if not player then
         return nil, 'create_failed'
     end
@@ -79,17 +86,17 @@ function adapter.CreateCharacter(source, data)
 end
 
 function adapter.LoadCharacter(source, citizenid)
-    local player = QBCore.Functions.GetPlayer(source)
+    local player = getQBCore().Functions.GetPlayer(source)
     if player then
-        QBCore.Player.Logout(source)
+        getQBCore().Player.Logout(source)
         Wait(250)
     end
 
-    return QBCore.Player.Login(source, citizenid) == true
+    return getQBCore().Player.Login(source, citizenid) == true
 end
 
 function adapter.DeleteCharacter(source, citizenid)
-    QBCore.Player.DeleteCharacter(source, citizenid)
+    getQBCore().Player.DeleteCharacter(source, citizenid)
     return true
 end
 
@@ -122,9 +129,9 @@ function adapter.GiveStarterItems(source)
 end
 
 function adapter.Logout(source)
-    local player = QBCore.Functions.GetPlayer(source)
+    local player = getQBCore().Functions.GetPlayer(source)
     if player then
-        QBCore.Player.Logout(source)
+        getQBCore().Player.Logout(source)
     end
 end
 

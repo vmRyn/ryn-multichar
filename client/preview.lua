@@ -3,10 +3,53 @@ Preview = {
     props = {},
     vehicles = {},
     characters = {},
+    activeSlot = 1,
 }
+
+local function isInteriorScene()
+    local scene = Config.Scene
+    if not scene then return false end
+    if scene.ipl or scene.type == 'apartment' or scene.type == 'interior' or scene.type == 'studio' then
+        return true
+    end
+
+    local coords = scene.coords
+    if coords and GetInteriorAtCoords(coords.x, coords.y, coords.z) ~= 0 then
+        return true
+    end
+
+    return false
+end
+
+local function deletePedSafe(ped)
+    if ped and DoesEntityExist(ped) then
+        SetEntityAsMissionEntity(ped, true, true)
+        DeleteEntity(ped)
+    end
+end
+
+local function finalizePedPlacement(ped, coords)
+    if not ped or not DoesEntityExist(ped) then return end
+
+    -- IPL slot coords are hand-placed; interior raycasts often hit the wrong mesh and bury the ped.
+    local z = coords.z
+
+    SetEntityCoordsNoOffset(ped, coords.x, coords.y, z, false, false, false)
+    SetEntityHeading(ped, coords.w or 0.0)
+    FreezeEntityPosition(ped, true)
+end
 
 local function resolvePedCoords(coords)
     if not Config.SceneTools or not Config.SceneTools.snapPedsToGround then
+        return coords
+    end
+
+    -- Ground snap finds world surfaces below IPL interiors and teleports peds outdoors.
+    if isInteriorScene() then
+        return coords
+    end
+
+    if GetInteriorAtCoords(coords.x, coords.y, coords.z) ~= 0 then
         return coords
     end
 
@@ -34,24 +77,49 @@ end
 local function resolvePose(character, slotIndex)
     if not Config.ScenePoses.enabled then return nil, nil end
 
-    local poseId = Config.ScenePoses.defaultPreset
-
     if character and character.scene_data and character.scene_data.poseId then
-        poseId = character.scene_data.poseId
-    else
-        local slotConfig = Config.Scene.slots[slotIndex]
-        if slotConfig and slotConfig.posePreset then
-            poseId = slotConfig.posePreset
-        end
+        local poseId = character.scene_data.poseId
+        return poseId, Config.ScenePoses.presets[poseId]
     end
 
+    -- Empty slots and characters without a saved pose use standing idle only (no vehicles/props).
+    local poseId = Config.ScenePoses.defaultPreset
     return poseId, Config.ScenePoses.presets[poseId]
+end
+
+local function playSlotIdle(ped, slotIndex, character)
+    local slotConfig = Config.Scene.slots[slotIndex]
+    local _, pose = resolvePose(character, slotIndex)
+
+    if pose and pose.anim then
+        playAnim(ped, pose.anim)
+    elseif slotConfig and slotConfig.idleAnim then
+        playAnim(ped, slotConfig.idleAnim)
+    end
+end
+
+local function setPedSlotVisible(ped, visible, isGhost)
+    if not ped or not DoesEntityExist(ped) then return end
+
+    SetEntityVisible(ped, visible, false)
+    if not visible then return end
+
+    if isGhost then
+        SetEntityAlpha(ped, 210, false)
+    else
+        ResetEntityAlpha(ped)
+    end
 end
 
 local function playAnim(ped, animConfig)
     if not animConfig or not DoesEntityExist(ped) then return end
+    if not animConfig.dict or not DoesAnimDictExist(animConfig.dict) then return end
 
-    lib.requestAnimDict(animConfig.dict)
+    local loaded = pcall(function()
+        lib.requestAnimDict(animConfig.dict)
+    end)
+    if not loaded then return end
+
     TaskPlayAnim(
         ped,
         animConfig.dict,
@@ -179,15 +247,16 @@ local function spawnGhostPed(coords, slotIndex)
 
     local ped = CreatePed(4, model, coords.x, coords.y, coords.z, coords.w, false, true)
     configurePreviewPed(ped)
-    SetEntityAlpha(ped, 110, false)
+    SetEntityAlpha(ped, 210, false)
     SetPedDefaultComponentVariation(ped)
 
     for i = 0, 11 do
         SetPedComponentVariation(ped, i, 0, 0, 0)
     end
 
-    local _, pose = resolvePose(nil, slotIndex)
-    playAnim(ped, pose and pose.anim)
+    finalizePedPlacement(ped, coords)
+
+    playSlotIdle(ped, slotIndex, nil)
 
     return ped
 end
@@ -211,27 +280,136 @@ local function spawnCharacterPed(coords, character, slotIndex)
     if character and character.citizenid then
         local appearance, pedModel = Appearance.FetchPreviewData(character.citizenid)
         ped = Appearance.ApplyToPed(ped, appearance, pedModel) or ped
+        configurePreviewPed(ped)
     end
 
+    finalizePedPlacement(ped, coords)
+
     local _, pose = resolvePose(character, slotIndex)
-    playAnim(ped, pose and pose.anim)
+    playSlotIdle(ped, slotIndex, character)
     applyPoseExtras(slotIndex, ped, pose, coords)
 
     return ped
 end
 
-function Preview.SpawnAll(characters)
+local function clearActiveSlotPed()
+    local slotIndex = Preview.activeSlot
+    if not slotIndex then return end
+
+    clearSlotExtras(slotIndex)
+    deletePedSafe(Preview.peds[slotIndex])
+    Preview.peds[slotIndex] = nil
+end
+
+local function resolveSlotIndex(character, fallback)
+    if not character then return fallback end
+    return character.cid
+        or character.slot
+        or (character.charinfo and character.charinfo.cid)
+        or fallback
+end
+
+local function getPedCoordsForPose(ped)
+    local coords = GetEntityCoords(ped)
+    return vector4(coords.x, coords.y, coords.z, GetEntityHeading(ped))
+end
+
+function Preview.ApplyPose(slotIndex, character)
+    slotIndex = slotIndex or Preview.activeSlot or 1
+    local ped = Preview.peds[slotIndex]
+
+    if not ped or not DoesEntityExist(ped) then
+        Preview.RefreshSlot(slotIndex, character)
+        return
+    end
+
+    clearSlotExtras(slotIndex)
+    ClearPedTasksImmediately(ped)
+
+    local _, pose = resolvePose(character, slotIndex)
+    playAnim(ped, pose and pose.anim)
+    applyPoseExtras(slotIndex, ped, pose, getPedCoordsForPose(ped))
+end
+
+local function spawnSlotPed(slotIndex)
+    local slotConfig = Config.Scene.slots[slotIndex]
+    if not slotConfig then return nil end
+
+    local character = getCharacterForSlot(Preview.characters, slotIndex)
+    local coords = resolvePedCoords(slotConfig.ped)
+
+    return character
+        and spawnCharacterPed(coords, character, slotIndex)
+        or spawnGhostPed(coords, slotIndex)
+end
+
+function Preview.SwitchSlot(slotIndex, characters)
+    if characters then Preview.characters = characters end
+    slotIndex = slotIndex or Preview.activeSlot or 1
+
+    local previousSlot = Preview.activeSlot
+    if previousSlot and previousSlot ~= slotIndex then
+        local previousPed = Preview.peds[previousSlot]
+        local previousCharacter = getCharacterForSlot(Preview.characters, previousSlot)
+        setPedSlotVisible(previousPed, false, not previousCharacter)
+    end
+
+    Preview.activeSlot = slotIndex
+    Scene.RequestSlotCollision(slotIndex)
+
+    local character = getCharacterForSlot(Preview.characters, slotIndex)
+    local isGhost = not character
+
+    if not Preview.peds[slotIndex] or not DoesEntityExist(Preview.peds[slotIndex]) then
+        Preview.peds[slotIndex] = spawnSlotPed(slotIndex)
+    else
+        local slotConfig = Config.Scene.slots[slotIndex]
+        if slotConfig then
+            finalizePedPlacement(Preview.peds[slotIndex], resolvePedCoords(slotConfig.ped))
+        end
+        playSlotIdle(Preview.peds[slotIndex], slotIndex, character)
+    end
+
+    setPedSlotVisible(Preview.peds[slotIndex], true, isGhost)
+
+    if Camera.photoMode then
+        Camera.DisablePhotoMode(slotIndex)
+    elseif Camera.cam and Camera.active then
+        Camera.FocusSlot(slotIndex)
+    else
+        Camera.Activate(slotIndex)
+    end
+end
+
+function Preview.WarmRemainingSlots(activeSlot)
+    activeSlot = activeSlot or Preview.activeSlot or 1
+
+    for slotIndex in pairs(Config.Scene.slots) do
+        if slotIndex ~= activeSlot then
+            if not Preview.peds[slotIndex] or not DoesEntityExist(Preview.peds[slotIndex]) then
+                Preview.peds[slotIndex] = spawnSlotPed(slotIndex)
+            end
+            local character = getCharacterForSlot(Preview.characters, slotIndex)
+            setPedSlotVisible(Preview.peds[slotIndex], false, not character)
+        end
+    end
+end
+
+function Preview.SpawnAll(characters, slotIndex)
     Preview.Cleanup()
     Preview.characters = characters or {}
+    slotIndex = slotIndex or 1
 
-    for slotIndex, slotConfig in pairs(Config.Scene.slots) do
-        local character = getCharacterForSlot(characters, slotIndex)
-        local coords = slotConfig.ped
+    Preview.activeSlot = slotIndex
+    Scene.RequestSlotCollision(slotIndex)
+    Preview.peds[slotIndex] = spawnSlotPed(slotIndex)
 
-        Preview.peds[slotIndex] = character
-            and spawnCharacterPed(coords, character, slotIndex)
-            or spawnGhostPed(coords, slotIndex)
-    end
+    local character = getCharacterForSlot(Preview.characters, slotIndex)
+    setPedSlotVisible(Preview.peds[slotIndex], true, not character)
+
+    CreateThread(function()
+        Preview.WarmRemainingSlots(slotIndex)
+    end)
 end
 
 function Preview.Cleanup()
@@ -240,9 +418,7 @@ function Preview.Cleanup()
     end
 
     for _, ped in pairs(Preview.peds) do
-        if DoesEntityExist(ped) then
-            DeleteEntity(ped)
-        end
+        deletePedSafe(ped)
     end
 
     Preview.peds = {}
@@ -252,40 +428,39 @@ function Preview.Cleanup()
 end
 
 function Preview.FocusSlot(slotIndex)
-    Camera.FocusSlot(slotIndex)
-
-    local ped = Preview.peds[slotIndex]
-    if ped and DoesEntityExist(ped) then
-        local character = getCharacterForSlot(Preview.characters, slotIndex)
-        local _, pose = resolvePose(character, slotIndex)
-        playAnim(ped, pose and pose.anim)
-    end
+    Preview.SwitchSlot(slotIndex)
 end
 
 function Preview.RefreshSlot(slotIndex, character)
-    local slotConfig = Config.Scene.slots[slotIndex]
-    if not slotConfig then return end
-
-    clearSlotExtras(slotIndex)
-
-    if Preview.peds[slotIndex] and DoesEntityExist(Preview.peds[slotIndex]) then
-        DeleteEntity(Preview.peds[slotIndex])
-    end
-
-    Preview.peds[slotIndex] = character
-        and spawnCharacterPed(slotConfig.ped, character, slotIndex)
-        or spawnGhostPed(slotConfig.ped, slotIndex)
-
     if character then
+        local found = false
         for index, existing in ipairs(Preview.characters) do
             if existing.citizenid == character.citizenid then
                 Preview.characters[index] = character
+                found = true
                 break
             end
         end
+        if not found then
+            Preview.characters[#Preview.characters + 1] = character
+        end
     end
 
-    Camera.FocusSlot(slotIndex)
+    clearSlotExtras(slotIndex)
+    deletePedSafe(Preview.peds[slotIndex])
+    Preview.peds[slotIndex] = spawnSlotPed(slotIndex)
+
+    local isActive = Preview.activeSlot == slotIndex
+    local slotCharacter = getCharacterForSlot(Preview.characters, slotIndex)
+    setPedSlotVisible(Preview.peds[slotIndex], isActive, not slotCharacter)
+
+    if isActive then
+        if Camera.cam and Camera.active then
+            Camera.FocusSlot(slotIndex)
+        else
+            Camera.Activate(slotIndex)
+        end
+    end
 end
 
 function Preview.UpdateCharacterPose(citizenid, sceneData)
@@ -294,10 +469,8 @@ function Preview.UpdateCharacterPose(citizenid, sceneData)
             character.scene_data = sceneData
             Preview.characters[index] = character
 
-            local slotIndex = character.cid or character.slot
-            if slotIndex and Preview.peds[slotIndex] then
-                Preview.RefreshSlot(slotIndex, character)
-            end
+            local slotIndex = resolveSlotIndex(character, Preview.activeSlot)
+            Preview.ApplyPose(slotIndex, character)
             break
         end
     end

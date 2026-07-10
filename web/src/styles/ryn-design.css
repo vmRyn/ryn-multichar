@@ -106,30 +106,20 @@
   }
 }
 
-/* ── Cinematic scene framing ── */
+/* ── Cinematic edge vignette only — center stays clear for the 3D scene (CEF-safe) ── */
 .ryn-scene-frame {
   pointer-events: none;
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 90% 70% at 50% 45%, transparent 30%, color-mix(in srgb, var(--ryn-void) 55%, transparent) 100%),
-    linear-gradient(to bottom, color-mix(in srgb, var(--ryn-void) 70%, transparent) 0%, transparent 14%),
-    linear-gradient(to top, color-mix(in srgb, var(--ryn-void) 92%, transparent) 0%, transparent 38%);
+  background: transparent;
+  box-shadow:
+    inset 0 72px 72px -36px rgba(5, 8, 13, 0.45),
+    inset 0 -140px 110px -60px rgba(5, 8, 13, 0.62);
 }
 
 .ryn-scene-frame::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    transparent 72%,
-    color-mix(in srgb, var(--ryn-accent) 4%, transparent) 88%,
-    color-mix(in srgb, var(--ryn-accent) 8%, transparent) 100%
-  );
-  opacity: 0.9;
+  content: none;
 }
 
 /* ── Top chrome ── */
@@ -143,6 +133,7 @@
   align-items: center;
   justify-content: space-between;
   pointer-events: none;
+  transition: opacity var(--ryn-duration) var(--ryn-ease), visibility var(--ryn-duration) var(--ryn-ease);
 }
 
 .ryn-chrome > * {
@@ -195,8 +186,7 @@
   padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid var(--ryn-border-subtle);
-  background: color-mix(in srgb, var(--ryn-charcoal) 75%, transparent);
-  backdrop-filter: blur(12px);
+  background: rgba(20, 28, 40, 0.88);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--ryn-text-muted);
@@ -218,6 +208,19 @@
   justify-content: center;
   padding-inline: clamp(var(--ryn-space-2), 4vw, var(--ryn-space-6));
   pointer-events: none;
+  transition: opacity var(--ryn-duration) var(--ryn-ease), visibility var(--ryn-duration) var(--ryn-ease);
+}
+
+.ryn-dock-wrap--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.ryn-chrome--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .ryn-command-deck {
@@ -232,13 +235,13 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--ryn-radius-lg);
-  background: color-mix(in srgb, var(--ryn-charcoal) 92%, transparent);
+  /* Solid fill — backdrop-filter renders as a black box in FiveM CEF */
+  background: rgba(20, 28, 40, 0.94);
   border: 1px solid var(--ryn-border-subtle);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--ryn-accent) 6%, transparent) inset,
     0 1px 0 rgba(255, 255, 255, 0.04) inset,
     0 32px 64px -24px rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(16px);
 }
 
 .ryn-command-deck__accent {
@@ -456,12 +459,11 @@
   overflow: hidden;
   width: 100%;
   border-radius: var(--ryn-radius-lg);
-  background: color-mix(in srgb, var(--ryn-charcoal) 94%, transparent);
+  background: rgba(20, 28, 40, 0.96);
   border: 1px solid var(--ryn-border-subtle);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--ryn-accent) 5%, transparent) inset,
+    0 0 0 1px rgba(45, 127, 249, 0.05) inset,
     0 40px 80px -32px rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(20px);
 }
 
 .ryn-surface::before {
@@ -487,11 +489,10 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--ryn-radius-lg);
-  background: color-mix(in srgb, var(--ryn-charcoal) 96%, transparent);
+  background: rgba(20, 28, 40, 0.96);
   border: 1px solid var(--ryn-border-subtle);
   padding: var(--ryn-space-3);
   box-shadow: 0 40px 80px -32px rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
 }
 
 .ryn-panel::before {
@@ -506,8 +507,8 @@
 }
 
 .ryn-modal-backdrop {
-  background: color-mix(in srgb, var(--ryn-void) 55%, transparent);
-  backdrop-filter: blur(4px);
+  /* CEF: no backdrop-filter — light tint only so the scene stays visible */
+  background: rgba(5, 8, 13, 0.28);
 }
 
 /* ── Typography ── */
@@ -779,6 +780,11 @@
   opacity: 0;
 }
 
+.ryn-chrome:not(.ryn-chrome--hidden) [data-animate='chrome'],
+.ryn-dock-wrap:not(.ryn-dock-wrap--hidden) [data-animate='dock'] {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-animate] {
     opacity: 1 !important;
@@ -816,9 +822,8 @@
   padding: var(--ryn-space-2);
   border-radius: var(--ryn-radius-lg);
   border: 1px solid var(--ryn-border-subtle);
-  background: color-mix(in srgb, var(--ryn-charcoal) 92%, transparent);
+  background: rgba(20, 28, 40, 0.96);
   box-shadow: 0 24px 64px -24px rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(18px);
 }
 
 .ryn-photo-panel__header {
@@ -909,8 +914,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--ryn-void) 45%, transparent);
-  backdrop-filter: blur(6px);
+  background: rgba(5, 8, 13, 0.45);
 }
 
 .ryn-loading-overlay__card {
@@ -921,7 +925,7 @@
   padding: 20px 28px;
   border-radius: var(--ryn-radius-lg);
   border: 1px solid var(--ryn-border-subtle);
-  background: color-mix(in srgb, var(--ryn-charcoal) 92%, transparent);
+  background: rgba(20, 28, 40, 0.96);
 }
 
 .ryn-loading-overlay__spinner {

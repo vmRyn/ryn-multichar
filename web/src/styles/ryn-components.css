@@ -43,8 +43,7 @@
 
   [data-slot='select-popup'] {
     border-color: var(--ryn-border-subtle) !important;
-    background: color-mix(in srgb, var(--ryn-charcoal) 98%, transparent) !important;
-    backdrop-filter: blur(20px);
+    background: rgba(20, 28, 40, 0.98) !important;
     box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.8) !important;
     border-radius: var(--ryn-radius) !important;
   }
@@ -144,9 +143,8 @@
 [data-slot='select-popup'],
 [data-slot='autocomplete-popup'] {
   border-color: var(--ryn-border-subtle) !important;
-  background: color-mix(in srgb, var(--ryn-charcoal) 98%, transparent) !important;
+  background: rgba(20, 28, 40, 0.98) !important;
   color: var(--ryn-text) !important;
-  backdrop-filter: blur(20px);
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.75) !important;
   border-radius: var(--ryn-radius) !important;
 }
@@ -190,9 +188,8 @@
   border-left-width: 3px !important;
   border-left-style: solid !important;
   border-left-color: var(--ryn-accent) !important;
-  background: color-mix(in srgb, var(--ryn-charcoal) 96%, transparent) !important;
+  background: rgba(20, 28, 40, 0.96) !important;
   color: var(--ryn-text) !important;
-  backdrop-filter: blur(16px);
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7) !important;
   border-radius: var(--ryn-radius) !important;
   animation: ryn-toast-in 200ms var(--ryn-ease-out);

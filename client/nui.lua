@@ -6,29 +6,17 @@ end)
 
 RegisterNUICallback('getCharacters', function(_, cb)
     local characters, slotLimit = lib.callback.await('ryn-multichar:server:getCharacters', false)
-    Preview.SpawnAll(characters or {})
+    Preview.SpawnAll(characters or {}, Preview.activeSlot or 1)
     cb({ characters = characters, slotLimit = slotLimit })
 end)
 
 RegisterNUICallback('selectSlot', function(data, cb)
-    Photo.SetSlot(data.slotIndex)
-
-    local characters, _ = lib.callback.await('ryn-multichar:server:getCharacters', false)
-    local character = nil
-
-    for _, char in ipairs(characters or {}) do
-        if (char.cid or char.slot) == data.slotIndex then
-            character = char
-            break
-        end
-    end
-
-    if not character then
-        character = characters and characters[data.slotIndex]
-    end
-
-    Preview.RefreshSlot(data.slotIndex, character)
     cb('ok')
+
+    CreateThread(function()
+        Photo.SetSlot(data.slotIndex)
+        Preview.SwitchSlot(data.slotIndex)
+    end)
 end)
 
 RegisterNUICallback('previewSpawn', function(data, cb)
@@ -41,8 +29,11 @@ end)
 RegisterNUICallback('photoMode', function(data, cb)
     if data.enabled then
         Photo.Enable(data.slotIndex)
+        SendNUIMessage({ action = 'photoMode', enabled = true })
     else
         Photo.Disable()
+        SetNuiFocus(true, true)
+        SendNUIMessage({ action = 'photoMode', enabled = false })
     end
     cb({ success = true, active = Photo.active })
 end)
@@ -92,7 +83,7 @@ RegisterNUICallback('deleteCharacter', function(data, cb)
 
     if success then
         local characters, slotLimit = lib.callback.await('ryn-multichar:server:getCharacters', false)
-        Preview.SpawnAll(characters or {})
+        Preview.SpawnAll(characters or {}, Preview.activeSlot or 1)
         cb({ success = true, characters = characters, slotLimit = slotLimit })
         return
     end
@@ -123,15 +114,18 @@ end
 RegisterNUICallback('createCharacter', function(data, cb)
     local character, err = lib.callback.await('ryn-multichar:server:createCharacter', false, data)
     if character then
+        cb({ success = true, pending = true })
         Creation.StartAppearance(character)
     elseif err then
-        lib.notify(source, {
+        lib.notify({
             title = 'ryn-multichar',
             description = localeError(err),
             type = 'error',
         })
+        cb({ success = false, error = err })
+    else
+        cb({ success = false, error = 'create_failed' })
     end
-    cb({ success = character ~= nil, error = err })
 end)
 
 RegisterNUICallback('selectSpawn', function(data, cb)

@@ -20,7 +20,7 @@ export function RynModal({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-6 pt-[8vh] pb-[min(40vh,360px)]">
       <button
         type="button"
         className="ryn-modal-backdrop absolute inset-0"

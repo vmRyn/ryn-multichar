@@ -50,24 +50,13 @@ function SceneTools.CopyCameraPosition()
 end
 
 function SceneTools.RegisterCommands()
-    if not Config.SceneTools or not Config.SceneTools.enabled then return end
-
-    lib.addCommand(Config.SceneTools.pedCommand, {
-        help = 'Copy current ped position as vector4 (scene tuning)',
-        restricted = Config.SceneTools.permission,
-    }, function()
-        SceneTools.CopyPedPosition()
-    end)
-
-    lib.addCommand(Config.SceneTools.camCommand, {
-        help = 'Copy active scene camera pos/rot/fov (scene tuning)',
-        restricted = Config.SceneTools.permission,
-    }, function()
-        SceneTools.CopyCameraPosition()
-    end)
+    -- Commands are registered server-side (server/scene_tools.lua).
 end
 
-CreateThread(function()
-    while not Bridge.name do Wait(100) end
-    SceneTools.RegisterCommands()
+RegisterNetEvent('ryn-multichar:client:sceneTools:copyPed', function()
+    SceneTools.CopyPedPosition()
+end)
+
+RegisterNetEvent('ryn-multichar:client:sceneTools:copyCam', function()
+    SceneTools.CopyCameraPosition()
 end)

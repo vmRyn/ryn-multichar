@@ -1,5 +1,12 @@
 local adapter = {}
-local ESX = exports['es_extended']:getSharedObject()
+local ESX
+
+local function getESX()
+    if not ESX then
+        ESX = exports['es_extended']:getSharedObject()
+    end
+    return ESX
+end
 
 adapter.HandlesStarterItems = false
 
@@ -146,7 +153,7 @@ function adapter.CreateCharacter(source, data)
 end
 
 function adapter.LoadCharacter(source, citizenid)
-    local xPlayer = ESX.GetPlayerFromId(source)
+    local xPlayer = getESX().GetPlayerFromId(source)
     if xPlayer then
         adapter.Logout(source)
         Wait(250)
@@ -157,7 +164,7 @@ function adapter.LoadCharacter(source, citizenid)
 end
 
 function adapter.DeleteCharacter(source, citizenid)
-    local xPlayer = ESX.GetPlayerFromId(source)
+    local xPlayer = getESX().GetPlayerFromId(source)
     if xPlayer and xPlayer.identifier == citizenid then
         adapter.Logout(source)
         Wait(250)
@@ -188,7 +195,7 @@ end
 function adapter.GiveStarterItems(source)
     if not Config.StarterItems.enabled then return end
 
-    local xPlayer = ESX.GetPlayerFromId(source)
+    local xPlayer = getESX().GetPlayerFromId(source)
     if not xPlayer then return end
 
     for _, item in ipairs(Config.StarterItems.items) do
@@ -203,7 +210,7 @@ function adapter.GiveStarterItems(source)
 end
 
 function adapter.Logout(source)
-    local xPlayer = ESX.GetPlayerFromId(source)
+    local xPlayer = getESX().GetPlayerFromId(source)
     if not xPlayer then return end
 
     TriggerEvent('esx:playerLogout', source)
