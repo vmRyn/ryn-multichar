@@ -1,11 +1,18 @@
 local isOpen = false
 local hidePedThreadActive = false
 local relogExpected = false
+local relogExpectedAt = 0
 local openGen = 0
 
 local function shutdownLoadingScreen()
     ShutdownLoadingScreen()
     ShutdownLoadingScreenNui()
+end
+
+local function resetSpawnSelectState()
+    Spawn.selectMode = false
+    Spawn.citizenid = nil
+    Spawn.previewGen = (Spawn.previewGen or 0) + 1
 end
 
 local function startPlayerPedHideLoop()
@@ -34,9 +41,13 @@ local function fadeOutForSelect()
 end
 
 local function closeCharacterSelect()
-    if not isOpen then return end
+    if not isOpen then
+        resetSpawnSelectState()
+        return
+    end
     openGen = openGen + 1
     isOpen = false
+    resetSpawnSelectState()
 
     Photo.Disable()
     SetNuiFocus(false, false)
@@ -53,6 +64,7 @@ local function openCharacterSelect()
     openGen = openGen + 1
     local gen = openGen
     isOpen = true
+    resetSpawnSelectState()
 
     local ok, err = pcall(function()
         pcall(function() exports.spawnmanager:setAutoSpawn(false) end)
@@ -109,8 +121,15 @@ local function openCharacterSelect()
     return true
 end
 
+local function clearRelogExpected()
+    relogExpected = false
+    relogExpectedAt = 0
+end
+
 local function relogToCharacterSelect()
     CreateThread(function()
+        resetSpawnSelectState()
+
         if isOpen then
             closeCharacterSelect()
             Wait(100)
@@ -120,7 +139,7 @@ local function relogToCharacterSelect()
         isOpen = false
 
         local opened = openCharacterSelect()
-        relogExpected = false
+        clearRelogExpected()
 
         if not opened then
             isOpen = false
@@ -132,12 +151,22 @@ local function relogToCharacterSelect()
     end)
 end
 
+local function isRelogExpected()
+    if not relogExpected then return false end
+    if relogExpectedAt > 0 and (GetGameTimer() - relogExpectedAt) > 10000 then
+        clearRelogExpected()
+        return false
+    end
+    return true
+end
+
 RegisterNetEvent('ryn-multichar:client:open', function()
     openCharacterSelect()
 end)
 
 RegisterNetEvent('ryn-multichar:client:prepareRelog', function()
     relogExpected = true
+    relogExpectedAt = GetGameTimer()
 end)
 
 RegisterNetEvent('ryn-multichar:client:relog', function()
@@ -150,13 +179,13 @@ end)
 
 RegisterNetEvent('qbx_core:client:playerLoggedOut', function()
     if GetInvokingResource() then return end
-    if relogExpected or isOpen then return end
+    if isRelogExpected() or isOpen then return end
     openCharacterSelect()
 end)
 
 RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
     if GetInvokingResource() then return end
-    if relogExpected or isOpen then return end
+    if isRelogExpected() or isOpen then return end
     if Bridge.name == 'qb' then
         openCharacterSelect()
     end
@@ -164,7 +193,7 @@ end)
 
 RegisterNetEvent('esx:onPlayerLogout', function()
     if GetInvokingResource() then return end
-    if relogExpected or isOpen then return end
+    if isRelogExpected() or isOpen then return end
     if Bridge.name == 'esx' then
         openCharacterSelect()
     end
@@ -181,13 +210,29 @@ RegisterNetEvent('ryn-multichar:client:openAdmin', function()
 end)
 
 exports('OpenCharacterSelect', openCharacterSelect)
+
 exports('OpenSpawnSelector', function(characterData)
+    local citizenid = type(characterData) == 'table' and characterData.citizenid or characterData
+    if not citizenid then
+        print('^1[ryn-multichar] OpenSpawnSelector requires a citizenid^0')
+        return
+    end
+
+    Spawn.citizenid = citizenid
+    local locations = Spawn.GetAvailableLocations(citizenid)
+    Spawn.EnterSelectMode(locations)
+    SetNuiFocus(true, true)
     SendNUIMessage({
         action = 'open',
         screen = 'spawnSelect',
-        data = characterData,
+        data = {
+            theme = Config.UI,
+            features = Scene.GetFeaturesForNui(),
+            posePresets = Scene.GetPosePresetsForNui(),
+            locations = locations,
+            citizenid = citizenid,
+        },
     })
-    SetNuiFocus(true, true)
 end)
 
 CreateThread(function()

@@ -167,6 +167,10 @@ function Creation.StartAppearance(characterData)
                 Camera.Deactivate()
 
                 if not appearance then
+                    -- Character was already inserted; abandon incomplete slot on cancel.
+                    if characterData.citizenid then
+                        lib.callback.await('ryn-multichar:server:abandonCharacter', false, characterData.citizenid)
+                    end
                     Creation.ReturnToCharacterSelect(slotIndex)
                     return
                 end

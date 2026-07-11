@@ -99,3 +99,24 @@ function Characters.Delete(source, citizenid, confirmName)
     TriggerEvent('ryn-multichar:server:characterDeleted', source, citizenid)
     return true, nil
 end
+
+--- Delete a just-created character without name confirmation (appearance cancel).
+function Characters.Abandon(source, citizenid)
+    local adapter = Bridge.GetServer()
+    if not adapter or not citizenid then return false, 'no_framework' end
+
+    local characters = adapter.GetCharacters(source)
+    local character = findCharacter(characters, citizenid)
+    if not character then return false, 'not_found' end
+
+    if Playtime.sessions[source] and Playtime.sessions[source].citizenid == citizenid then
+        Playtime.Flush(source)
+    end
+
+    local success = adapter.DeleteCharacter(source, citizenid)
+    if not success then return false, 'delete_failed' end
+
+    MySQL.query.await('DELETE FROM ryn_multichar_metadata WHERE character_id = ?', { citizenid })
+    TriggerEvent('ryn-multichar:server:characterDeleted', source, citizenid)
+    return true, nil
+end

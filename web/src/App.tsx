@@ -114,7 +114,10 @@ function MulticharApp({
     if (payload.screen === 'spawnSelect' || payload.screen === 'creation') {
       playUiSound('transition')
     }
-    if (payload.screen === 'characterSelect') loadCharacters()
+    if (payload.screen === 'characterSelect') {
+      // Characters arrive in payload; avoid a duplicate getCharacters fetch.
+      if (!payload.data?.characters) loadCharacters()
+    }
     if (payload.screen === 'deleteConfirm' && dev) {
       setDeleteTarget(demoCharacters[0])
       setDeleteConfirmName('')
@@ -160,8 +163,10 @@ function MulticharApp({
   }, [])
 
   useEffect(() => {
-    if (visible && screen === 'characterSelect') loadCharacters()
-  }, [visible, screen, loadCharacters])
+    // Only refresh when opening character select without fresh payload data.
+    if (!visible || screen !== 'characterSelect' || characters.length > 0) return
+    loadCharacters()
+  }, [visible, screen, characters.length, loadCharacters])
 
   useEffect(() => {
     if (!visible || screen !== 'characterSelect' || loadingCharacters || modalOpen || photoModeActive) return
@@ -255,6 +260,7 @@ function MulticharApp({
     setActiveSlot(slotIndex)
     playUiSound('transition')
     setScreen('creation')
+    fetchNui('openCreation', { slotIndex }).catch(() => {})
   }, [])
 
   const handleCreationSubmit = async (data: Record<string, string>) => {
@@ -292,10 +298,17 @@ function MulticharApp({
     setSpawning(true)
     const panel = appRef.current?.querySelector('[data-animate="spawn-panel"]')
     if (panel) await animateSpawnConfirm(panel)
-    playUiSound('confirm')
-    notifyInfo(t('toastSpawn'), t('toastSpawnDesc'))
     try {
-      await fetchNui('selectSpawn', { locationId, citizenid: selectedCitizenId })
+      const result = await fetchNui<{ success?: boolean }>('selectSpawn', {
+        locationId,
+        citizenid: selectedCitizenId,
+      })
+      if (result?.success === false) {
+        notifyError(t('toastError'), t('toastErrorDesc'))
+        return
+      }
+      playUiSound('confirm')
+      notifyInfo(t('toastSpawn'), t('toastSpawnDesc'))
       setVisible(false)
     } catch {
       notifyError(t('toastError'), t('toastErrorDesc'))

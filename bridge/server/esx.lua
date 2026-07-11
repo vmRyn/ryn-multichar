@@ -11,20 +11,11 @@ end
 adapter.HandlesStarterItems = false
 
 local function decodeJson(value, fallback)
-    if type(value) == 'table' then return value end
-    if type(value) ~= 'string' or value == '' then return fallback end
-    local ok, decoded = pcall(json.decode, value)
-    return ok and decoded or fallback
+    return Utils.DecodeJson(value, fallback)
 end
 
 local function tableExists(name)
-    local ok, row = pcall(function()
-        return MySQL.single.await(
-            'SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1',
-            { name }
-        )
-    end)
-    return ok and row ~= nil
+    return Utils.TableExists(name)
 end
 
 local function getLicenseHash(source)
@@ -56,6 +47,7 @@ function adapter.GetCharacters(source)
         if type(job) ~= 'table' then
             job = { name = row.job, label = row.job or 'Unemployed', grade = row.job_grade or 0 }
         end
+        local metadata = decodeJson(row.metadata, {})
 
         characters[#characters + 1] = {
             citizenid = row.identifier,
@@ -65,7 +57,7 @@ function adapter.GetCharacters(source)
                 lastname = row.lastname,
                 gender = (row.sex == 'f' or row.sex == 'female') and 1 or 0,
                 birthdate = row.dateofbirth,
-                nationality = row.nationality,
+                nationality = metadata.nationality or row.nationality,
             },
             money = {
                 cash = accounts.money or 0,
@@ -104,6 +96,9 @@ function adapter.CreateCharacter(source, data)
     local spawnPos = Config.Scene.coords
     local position = json.encode({ x = spawnPos.x, y = spawnPos.y, z = spawnPos.z, heading = 0.0 })
     local accounts = json.encode({ money = 0, bank = 5000, black_money = 0 })
+    local metadata = json.encode({
+        nationality = data.nationality or 'American',
+    })
     local job = json.encode({
         name = 'unemployed',
         label = 'Unemployed',
@@ -129,6 +124,10 @@ function adapter.CreateCharacter(source, data)
             'user',
             position,
         })
+        -- Minimal schemas often lack metadata; best-effort nationality update.
+        pcall(function()
+            MySQL.update.await('UPDATE users SET metadata = ? WHERE identifier = ?', { metadata, identifier })
+        end)
     else
         MySQL.insert.await([[
             INSERT INTO users
@@ -151,7 +150,7 @@ function adapter.CreateCharacter(source, data)
             json.encode({}),
             json.encode({}),
             json.encode({}),
-            json.encode({}),
+            metadata,
             0,
             0,
         })
@@ -245,20 +244,28 @@ end
 function adapter.GiveStarterItems(source)
     if not Config.StarterItems.enabled then return end
 
-    local xPlayer = getESX().GetPlayerFromId(source)
-    if not xPlayer then return end
-
-    for _, item in ipairs(Config.StarterItems.items) do
-        if GetResourceState('ox_inventory') == 'started' then
-            pcall(function()
-                exports.ox_inventory:AddItem(source, item.name, item.amount)
-            end)
-        else
-            pcall(function()
-                xPlayer.addInventoryItem(item.name, item.amount)
-            end)
+    CreateThread(function()
+        local xPlayer
+        local deadline = GetGameTimer() + 15000
+        while GetGameTimer() < deadline do
+            xPlayer = getESX().GetPlayerFromId(source)
+            if xPlayer then break end
+            Wait(250)
         end
-    end
+        if not xPlayer then return end
+
+        for _, item in ipairs(Config.StarterItems.items) do
+            if GetResourceState('ox_inventory') == 'started' then
+                pcall(function()
+                    exports.ox_inventory:AddItem(source, item.name, item.amount)
+                end)
+            else
+                pcall(function()
+                    xPlayer.addInventoryItem(item.name, item.amount)
+                end)
+            end
+        end
+    end)
 end
 
 function adapter.Logout(source)

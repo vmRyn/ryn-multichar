@@ -26,6 +26,11 @@ lib.callback.register('ryn-multichar:server:deleteCharacter', function(source, d
     return { success = success, error = err }
 end)
 
+lib.callback.register('ryn-multichar:server:abandonCharacter', function(source, citizenid)
+    local success, err = Characters.Abandon(source, citizenid)
+    return { success = success, error = err }
+end)
+
 lib.callback.register('ryn-multichar:server:getSpawnLocations', function(source, citizenid)
     return ServerSpawn.GetAvailable(source, citizenid)
 end)

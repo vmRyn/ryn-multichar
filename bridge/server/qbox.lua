@@ -1,10 +1,7 @@
 local adapter = {}
 
 local function decodeJson(value, fallback)
-    if type(value) == 'table' then return value end
-    if type(value) ~= 'string' or value == '' then return fallback end
-    local ok, decoded = pcall(json.decode, value)
-    return ok and decoded or fallback
+    return Utils.DecodeJson(value, fallback)
 end
 
 -- QBox grants starter items through qbx_core on character login.

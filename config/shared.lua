@@ -74,7 +74,7 @@ Config.Spawns = {
 }
 
 Config.SpawnOptions = {
-    lastLocation = false,
+    lastLocation = true,
     publicSpawns = true,
     housing = true,
 }

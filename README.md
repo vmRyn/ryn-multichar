@@ -90,7 +90,7 @@ git clone https://github.com/vmRyn/ryn-multichar.git
 
 Or download a ZIP from [github.com/vmRyn/ryn-multichar](https://github.com/vmRyn/ryn-multichar).
 
-1. Place the **`ryn-multichar`** folder in your server's `resources` directory. The folder name must match the resource name in `fxmanifest.lua` so `ensure ryn-multichar` works.
+1. Place this resource in your server's `resources` directory. **The folder name must match what you `ensure`** (official releases use `ryn-multichar`; this repo may be cloned as `ryn-spawn` — rename the folder or update `ensure` / export names to match).
 2. Pre-built NUI is in `web/dist/`. Rebuild only if you edit the React source:
 
    ```bash
@@ -99,6 +99,7 @@ Or download a ZIP from [github.com/vmRyn/ryn-multichar](https://github.com/vmRyn
    npm run build
    ```
 
+   FiveM always serves `web/dist/` — source changes in `web/src/` do nothing until you rebuild.
 ### 3. Server cfg
 
 ```cfg
@@ -225,9 +226,11 @@ ryn_multichar_tebex_player {playerId} {packageId}
 
 ## Exports
 
+Use your installed resource name (usually `ryn-multichar`):
+
 ```lua
 exports['ryn-multichar']:OpenCharacterSelect()
-exports['ryn-multichar']:OpenSpawnSelector(data)
+exports['ryn-multichar']:OpenSpawnSelector(citizenid) -- or { citizenid = '...' }
 exports['ryn-multichar']:GetSlotLimit(source)
 exports['ryn-multichar']:SetSlotLimit(source, amount)
 exports['ryn-multichar']:AddTebexSlots(license, amount)
@@ -288,12 +291,14 @@ Primary validation path is QBox; QB and ESX should follow the same flow after fr
 - [ ] Resource starts; framework detected in console
 - [ ] Character select opens on connect
 - [ ] Slot switch updates 3D preview + camera
-- [ ] Create → appearance → spawn → fade in
-- [ ] Last location + public spawns work
+- [ ] Create → appearance → spawn → fade in as freemode ped
+- [ ] Cancel appearance removes the incomplete character
+- [ ] Public spawns work (and last location when `Config.SpawnOptions.lastLocation = true`)
 - [ ] Housing spawns appear (if applicable)
+- [ ] Failed spawn keeps the selector open
 - [ ] Delete requires full name
 - [ ] Info panel: job, cash, bank, playtime
-- [ ] `/relog` works
+- [ ] `/relog` returns to character select
 - [ ] Photo mode + pose save
 - [ ] Admin `/charslots` persists to DB
 - [ ] Discord webhooks (if enabled)

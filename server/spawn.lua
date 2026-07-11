@@ -38,7 +38,14 @@ function ServerSpawn.GetAvailable(source, citizenid)
     end
 
     if Config.SpawnOptions.publicSpawns then
-        for id, spawn in pairs(Config.Spawns) do
+        local publicIds = {}
+        for id in pairs(Config.Spawns) do
+            publicIds[#publicIds + 1] = id
+        end
+        table.sort(publicIds)
+
+        for _, id in ipairs(publicIds) do
+            local spawn = Config.Spawns[id]
             locations[#locations + 1] = {
                 id = id,
                 label = spawn.label,

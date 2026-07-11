@@ -19,7 +19,7 @@ interface SpawnSelectorProps {
   onCancel: () => void
 }
 
-type SpawnCategory = 'housing' | 'public'
+type SpawnCategory = 'last' | 'housing' | 'public'
 
 const iconMap: Record<string, React.ReactNode> = {
   'map-pin': <MapPinIcon className="size-4" strokeWidth={2} />,
@@ -29,23 +29,20 @@ const iconMap: Record<string, React.ReactNode> = {
   building: <HomeIcon className="size-4" strokeWidth={2} />,
 }
 
-function getCategory(location: SpawnLocation): SpawnCategory | 'skip' {
-  if (location.id === 'lastLocation') return 'skip'
+function getCategory(location: SpawnLocation): SpawnCategory {
+  if (location.id === 'lastLocation') return 'last'
   if (location.id.startsWith('housing:')) return 'housing'
   return 'public'
 }
 
-const categoryOrder: SpawnCategory[] = ['housing', 'public']
+const categoryOrder: SpawnCategory[] = ['last', 'housing', 'public']
 
 export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorProps) {
   const { t } = useLocale()
   const rootRef = useRef<HTMLDivElement>(null)
   const choiceRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
-  const choices = useMemo(
-    () => locations.filter((loc) => getCategory(loc) !== 'skip'),
-    [locations],
-  )
+  const choices = useMemo(() => locations, [locations])
 
   const [selectedId, setSelectedId] = useState<string | null>(choices[0]?.id ?? null)
 
@@ -56,6 +53,7 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
 
   const groups = useMemo(() => {
     const labels: Record<SpawnCategory, string> = {
+      last: t('spawnGroupLast'),
       housing: t('spawnGroupHousing'),
       public: t('spawnGroupPublic'),
     }

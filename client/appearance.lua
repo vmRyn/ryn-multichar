@@ -25,7 +25,8 @@ function Appearance.Detect()
 end
 
 function Appearance.GetProvider()
-    if not Appearance.activeProvider then
+    -- Re-detect when previously unresolved so late-starting appearance resources work.
+    if not Appearance.activeProvider or Appearance.activeProvider == 'custom' then
         Appearance.activeProvider = Appearance.Detect()
         Utils.Debug('Appearance provider:', Appearance.activeProvider)
     end
@@ -331,12 +332,41 @@ function Appearance.OpenCreator(isNew, data, cb)
         end)
         return true
     elseif provider == 'qb-clothing' then
-        TriggerEvent('qb-clothes:client:CreateFirstCharacter')
-        if cb then cb(true) end
+        CreateThread(function()
+            local finished = false
+            local function finish(result)
+                if finished then return end
+                finished = true
+                if cb then cb(result) end
+            end
+
+            TriggerEvent('qb-clothes:client:CreateFirstCharacter')
+
+            -- qb-clothing has no reliable completion callback; wait for its NUI
+            -- to open then close (player finished or backed out).
+            local opened = false
+            local deadline = GetGameTimer() + 300000
+            while GetGameTimer() < deadline do
+                local focused = IsNuiFocused()
+                if focused then opened = true end
+                if opened and not focused then
+                    Wait(400)
+                    if not IsNuiFocused() then
+                        finish(true)
+                        return
+                    end
+                end
+                Wait(200)
+            end
+
+            finish(true)
+        end)
         return true
     elseif provider == 'skinchanger' then
         TriggerEvent('esx_skin:openSaveableMenu', function()
             if cb then cb(true) end
+        end, function()
+            if cb then cb(nil) end
         end)
         return true
     end
