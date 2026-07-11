@@ -7,6 +7,7 @@ import {
   demoSlotLimit,
   demoTheme,
   demoPosePresets,
+  demoScenePresets,
 } from './demoData'
 import { getDemoCharacters, getLastNuiCall, resetDemoState } from './mockNui'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,8 @@ export function DevPanel() {
       slotLimit: demoSlotLimit,
       features: { photoMode: true, scenePoses: true },
       posePresets: demoPosePresets,
+      scenePresets: demoScenePresets,
+      activeScene: 'apartment',
     }
 
     if (screen === 'spawnSelect') {
@@ -64,6 +67,8 @@ export function DevPanel() {
         slotLimit: demoSlotLimit,
         features: { photoMode: true, scenePoses: true },
         posePresets: demoPosePresets,
+        scenePresets: demoScenePresets,
+        activeScene: 'apartment',
       },
     }, '*')
   }

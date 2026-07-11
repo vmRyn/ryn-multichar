@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { CharacterDock } from '@/components/CharacterDock'
 import { SelectHeader } from '@/components/SelectHeader'
-import { RecentCharacterPanel } from '@/components/RecentCharacterPanel'
 import { CharacterInfoPanel } from '@/components/CharacterInfoPanel'
 import { CreationForm } from '@/components/CreationForm'
 import { SpawnSelector } from '@/components/SpawnSelector'
@@ -16,11 +15,12 @@ import { useLocale, LocaleProvider } from '@/hooks/useLocale'
 import { useTheme } from '@/hooks/useTheme'
 import { useKeyboardNav } from '@/hooks/useKeyboardNav'
 import { DevPanel } from '@/dev/DevPanel'
-import { demoCharacters, demoCreationFields, demoSlotLimit, demoSpawnLocations, demoTheme, demoPosePresets } from '@/dev/demoData'
-import { getLastPlayedCitizenId, getLastPlayedCharacter, getCharacterForSlot } from '@/lib/characters'
-import { notifyError, notifySuccess, notifyInfo } from '@/lib/toast'
+import { pickRandomCityBackground } from '@/dev/cityBackgrounds'
+import { demoCharacters, demoCreationFields, demoSlotLimit, demoSpawnLocations, demoTheme, demoPosePresets, demoScenePresets } from '@/dev/demoData'
+import { getLastPlayedCitizenId, getCharacterForSlot } from '@/lib/characters'
+import { notifyError, notifySuccess, dismissAllToasts } from '@/lib/toast'
 import { playUiSound } from '@/lib/sounds'
-import type { Character, CreationField, FeatureFlags, PosePreset, SpawnLocation, UITheme } from '@/types'
+import type { Character, CreationField, FeatureFlags, PosePreset, ScenePreset, SpawnLocation, UITheme } from '@/types'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { getErrorMessage, getErrorTitle } from '@/lib/errors'
 import { animateCharacterEntrance, animateSelectChromeOut, animateSelectChromeIn, animateSpawnConfirm, animateUiClose } from '@/lib/animations'
@@ -50,7 +50,10 @@ function MulticharApp({
   const [theme, setTheme] = useState<UITheme | null>(dev ? demoTheme : null)
   const [features, setFeatures] = useState<FeatureFlags>(dev ? { photoMode: true, scenePoses: true } : {})
   const [posePresets, setPosePresets] = useState<PosePreset[]>(dev ? demoPosePresets : [])
+  const [scenePresets, setScenePresets] = useState<ScenePreset[]>(dev ? demoScenePresets : [])
+  const [activeSceneId, setActiveSceneId] = useState(dev ? 'apartment' : '')
   const [photoModeActive, setPhotoModeActive] = useState(false)
+  const [photoUiHidden, setPhotoUiHidden] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [spawning, setSpawning] = useState(false)
   const appRef = useRef<HTMLDivElement>(null)
@@ -60,16 +63,12 @@ function MulticharApp({
   const infoOpen = !!infoCharacter
   const modalOpen = deleteOpen || infoOpen
   const selectChromeHidden = photoModeActive
+  const hideAllChrome = photoModeActive && photoUiHidden
 
   useTheme(theme)
 
   const lastPlayedCitizenId = useMemo(
     () => getLastPlayedCitizenId(characters),
-    [characters],
-  )
-
-  const lastPlayedCharacter = useMemo(
-    () => getLastPlayedCharacter(characters),
     [characters],
   )
 
@@ -111,6 +110,8 @@ function MulticharApp({
     if (payload.data?.slotLimit) setSlotLimit(payload.data.slotLimit as number)
     if (payload.data?.features) setFeatures(payload.data.features as FeatureFlags)
     if (payload.data?.posePresets) setPosePresets(payload.data.posePresets as PosePreset[])
+    if (payload.data?.scenePresets) setScenePresets(payload.data.scenePresets as ScenePreset[])
+    if (typeof payload.data?.activeScene === 'string') setActiveSceneId(payload.data.activeScene)
     if (payload.screen === 'spawnSelect' || payload.screen === 'creation') {
       playUiSound('transition')
     }
@@ -131,6 +132,9 @@ function MulticharApp({
 
   useNuiEvent<{ immediate?: boolean }>('close', (payload) => {
     setPhotoModeActive(false)
+    setPhotoUiHidden(false)
+    setSpawning(false)
+    dismissAllToasts()
     if (payload?.immediate) {
       setVisible(false)
       return
@@ -148,9 +152,11 @@ function MulticharApp({
     setAdminOpen(false)
   })
 
-  useNuiEvent<{ enabled?: boolean }>('photoMode', (payload) => {
+  useNuiEvent<{ enabled?: boolean; activeScene?: string }>('photoMode', (payload) => {
     setPhotoModeActive(!!payload.enabled)
+    if (typeof payload.activeScene === 'string') setActiveSceneId(payload.activeScene)
     if (!payload.enabled) {
+      setPhotoUiHidden(false)
       requestAnimationFrame(() => {
         if (appRef.current) animateCharacterEntrance(appRef.current)
       })
@@ -160,6 +166,10 @@ function MulticharApp({
   useEffect(() => {
     if (!dev) return
     document.body.classList.add('dev-preview')
+    document.body.style.setProperty(
+      '--dev-city-bg',
+      `url("${pickRandomCityBackground()}")`,
+    )
   }, [])
 
   useEffect(() => {
@@ -196,14 +206,6 @@ function MulticharApp({
     playUiSound('slotSelect')
     fetchNui('selectSlot', { slotIndex })
   }, [])
-
-  const handleSelectRecent = useCallback(
-    (character: Character) => {
-      const slot = character.cid ?? character.slot ?? 1
-      handleSelectSlot(slot)
-    },
-    [handleSelectSlot],
-  )
 
   const handlePlay = useCallback(async (character: Character) => {
     setInfoCharacter(null)
@@ -308,7 +310,8 @@ function MulticharApp({
         return
       }
       playUiSound('confirm')
-      notifyInfo(t('toastSpawn'), t('toastSpawnDesc'))
+      // Do not toast here — SetNuiFocus(false) freezes CEF timers and leaves it stuck.
+      dismissAllToasts()
       setVisible(false)
     } catch {
       notifyError(t('toastError'), t('toastErrorDesc'))
@@ -335,14 +338,22 @@ function MulticharApp({
 
   const handlePhotoModeClose = useCallback(() => {
     setPhotoModeActive(false)
+    setPhotoUiHidden(false)
     playUiSound('transition')
   }, [])
 
-  const handlePoseSaved = useCallback((citizenid: string, poseId: string) => {
+  const handlePoseSaved = useCallback((citizenid: string, poseId: string, sceneId?: string) => {
     setCharacters((current) =>
       current.map((character) =>
         character.citizenid === citizenid
-          ? { ...character, scene_data: { ...(character.scene_data ?? {}), poseId } }
+          ? {
+              ...character,
+              scene_data: {
+                ...(character.scene_data ?? {}),
+                poseId,
+                ...(sceneId ? { sceneId } : {}),
+              },
+            }
           : character,
       ),
     )
@@ -353,6 +364,7 @@ function MulticharApp({
     if (photoModeActive) {
       fetchNui('photoMode', { enabled: false, slotIndex: activeSlot }).catch(() => {})
       setPhotoModeActive(false)
+      setPhotoUiHidden(false)
       playUiSound('transition')
       return
     }
@@ -406,8 +418,8 @@ function MulticharApp({
 
   return (
     <div ref={appRef} className="relative h-screen w-screen overflow-hidden">
-      {screen !== 'spawnSelect' && <SceneVignette />}
-      {dev && <DevPanel />}
+      {screen !== 'spawnSelect' && !hideAllChrome && <SceneVignette />}
+      {dev && !photoModeActive && <DevPanel />}
 
       {(screen === 'characterSelect' || deleteOpen || infoOpen) && (
         <>
@@ -417,11 +429,6 @@ function MulticharApp({
             logo={theme?.logo}
             serverName={theme?.serverName}
             hidden={selectChromeHidden}
-          />
-          <RecentCharacterPanel
-            character={lastPlayedCharacter}
-            hidden={selectChromeHidden}
-            onSelect={handleSelectRecent}
           />
           <CharacterInfoPanel
             character={activeCharacter}
@@ -455,8 +462,12 @@ function MulticharApp({
         character={activeCharacter}
         slotIndex={activeSlot}
         posePresets={posePresets}
+        scenePresets={scenePresets}
+        activeSceneId={activeSceneId}
         onClose={handlePhotoModeClose}
         onPoseSaved={handlePoseSaved}
+        onUiHiddenChange={setPhotoUiHidden}
+        onSceneChange={setActiveSceneId}
       />
 
       <AdminSlotPanel open={adminOpen} onClose={() => setAdminOpen(false)} />

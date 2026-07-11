@@ -5,7 +5,7 @@
 #root {
   [data-slot='input-control'] {
     border-color: var(--ryn-border-subtle) !important;
-    background: color-mix(in srgb, var(--ryn-slate) 85%, transparent) !important;
+    background: var(--ryn-slate) !important;
     box-shadow: none !important;
     border-radius: var(--ryn-radius) !important;
     transition:
@@ -29,7 +29,7 @@
   [data-slot='select-button'],
   [data-slot='select-trigger'] {
     border-color: var(--ryn-border-subtle) !important;
-    background: color-mix(in srgb, var(--ryn-slate) 85%, transparent) !important;
+    background: var(--ryn-slate) !important;
     box-shadow: none !important;
     border-radius: var(--ryn-radius) !important;
     color: var(--ryn-text) !important;
@@ -43,8 +43,8 @@
 
   [data-slot='select-popup'] {
     border-color: var(--ryn-border-subtle) !important;
-    background: rgba(20, 28, 40, 0.98) !important;
-    box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.8) !important;
+    background: var(--ryn-charcoal) !important;
+    box-shadow: 0 16px 32px -16px rgba(0, 0, 0, 0.55) !important;
     border-radius: var(--ryn-radius) !important;
   }
 
@@ -55,7 +55,7 @@
 
   [data-slot='autocomplete-input-group'] [data-slot='input-control'] {
     border-color: var(--ryn-border-subtle) !important;
-    background: color-mix(in srgb, var(--ryn-slate) 85%, transparent) !important;
+    background: var(--ryn-slate) !important;
   }
 
   [data-slot='autocomplete-item'][data-highlighted] {
@@ -88,7 +88,7 @@
 
   [data-slot='button'].border-input,
   [data-slot='button'][class*='bg-popover'] {
-    background: color-mix(in srgb, var(--ryn-slate) 65%, transparent) !important;
+    background: var(--ryn-elevated) !important;
     border-color: var(--ryn-border-subtle) !important;
     color: var(--ryn-text) !important;
     box-shadow: none !important;
@@ -101,7 +101,7 @@
   }
 
   [data-slot='button'][class*='destructive-outline'] {
-    background: color-mix(in srgb, var(--ryn-danger) 8%, transparent) !important;
+    background: color-mix(in srgb, var(--ryn-danger) 8%, var(--ryn-slate)) !important;
     border-color: color-mix(in srgb, var(--ryn-danger) 28%, transparent) !important;
     color: #fca5a5 !important;
   }
@@ -114,7 +114,7 @@
 
   [data-slot='kbd'] {
     border: 1px solid var(--ryn-border-subtle);
-    background: color-mix(in srgb, var(--ryn-slate) 80%, transparent);
+    background: var(--ryn-elevated);
     color: var(--ryn-text-muted);
     border-radius: 4px;
     font-size: 10px;
@@ -143,9 +143,9 @@
 [data-slot='select-popup'],
 [data-slot='autocomplete-popup'] {
   border-color: var(--ryn-border-subtle) !important;
-  background: rgba(20, 28, 40, 0.98) !important;
+  background: var(--ryn-charcoal) !important;
   color: var(--ryn-text) !important;
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.75) !important;
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.55) !important;
   border-radius: var(--ryn-radius) !important;
 }
 
@@ -188,9 +188,9 @@
   border-left-width: 3px !important;
   border-left-style: solid !important;
   border-left-color: var(--ryn-accent) !important;
-  background: rgba(20, 28, 40, 0.96) !important;
+  background: var(--ryn-charcoal) !important;
   color: var(--ryn-text) !important;
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7) !important;
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.55) !important;
   border-radius: var(--ryn-radius) !important;
   animation: ryn-toast-in 200ms var(--ryn-ease-out);
 }
@@ -318,8 +318,7 @@
 .ryn-dev {
   border-radius: var(--ryn-radius);
   border: 1px solid var(--ryn-border-subtle);
-  background: color-mix(in srgb, var(--ryn-charcoal) 90%, transparent);
-  backdrop-filter: blur(16px);
+  background: var(--ryn-charcoal);
   overflow: hidden;
 }
 
@@ -345,7 +344,7 @@
 .ryn-dev__chip {
   border-radius: var(--ryn-radius-sm);
   border: 1px solid var(--ryn-border-subtle);
-  background: color-mix(in srgb, var(--ryn-slate) 70%, transparent);
+  background: var(--ryn-elevated);
   padding: 4px 8px;
   font-size: 10px;
   font-weight: 500;

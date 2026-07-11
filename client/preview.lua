@@ -84,6 +84,7 @@ end
 local function resolvePose(character, slotIndex)
     if not Config.ScenePoses.enabled then return nil, nil end
 
+    -- Only use a saved per-character pose. Slot idleAnim handles the default look.
     if character and character.scene_data and character.scene_data.poseId then
         local poseId = character.scene_data.poseId
         local pose = Config.ScenePoses.presets[poseId]
@@ -92,9 +93,7 @@ local function resolvePose(character, slotIndex)
         end
     end
 
-    -- Empty slots, missing presets (e.g. removed car poses), or no saved pose.
-    local poseId = Config.ScenePoses.defaultPreset
-    return poseId, Config.ScenePoses.presets[poseId]
+    return nil, nil
 end
 
 local function playAnim(ped, animConfig)
@@ -128,15 +127,19 @@ local function playSlotIdle(ped, slotIndex, character)
 
     if character and pose and pose.anim then
         playAnim(ped, pose.anim)
-    elseif character and slotConfig and slotConfig.idleAnim then
-        playAnim(ped, slotConfig.idleAnim)
-    elseif not character then
-        playAnim(ped, {
-            dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
-            name = 'idle_a',
-            flag = 1,
-        })
+        return
     end
+
+    if slotConfig and slotConfig.idleAnim then
+        playAnim(ped, slotConfig.idleAnim)
+        return
+    end
+
+    playAnim(ped, {
+        dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
+        name = 'idle_a',
+        flag = 1,
+    })
 end
 
 local function setSlotPropsVisible(slotIndex, visible)
@@ -405,8 +408,12 @@ function Preview.ApplyPose(slotIndex, character)
     ClearPedTasksImmediately(ped)
 
     local _, pose = resolvePose(character, slotIndex)
-    playAnim(ped, pose and pose.anim)
-    applyPoseExtras(slotIndex, ped, pose, getPedCoordsForPose(ped))
+    if pose and pose.anim then
+        playAnim(ped, pose.anim)
+        applyPoseExtras(slotIndex, ped, pose, getPedCoordsForPose(ped))
+    else
+        playSlotIdle(ped, slotIndex, character)
+    end
 end
 
 local function spawnSlotPed(slotIndex)
@@ -497,6 +504,49 @@ function Preview.SpawnAll(characters, slotIndex)
     CreateThread(function()
         Preview.WarmRemainingSlots()
     end)
+end
+
+--- Move existing preview peds into the current scene slots (no full respawn).
+function Preview.RelayoutForScene(characters, slotIndex)
+    if characters then Preview.characters = characters end
+    slotIndex = normalizeSlotIndex(slotIndex or Preview.activeSlot or 1)
+    Preview.activeSlot = slotIndex
+    Scene.RequestSlotCollision(slotIndex)
+
+    local keep = {}
+    for rawIndex, slotConfig in pairs(Config.Scene.slots) do
+        local idx = normalizeSlotIndex(rawIndex)
+        keep[idx] = true
+
+        local character = getCharacterForSlot(Preview.characters, idx)
+        local coords = resolvePedCoords(slotConfig.ped)
+        local ped = Preview.peds[idx]
+
+        clearSlotExtras(idx)
+
+        if ped and DoesEntityExist(ped) then
+            finalizePedPlacement(ped, coords)
+            if character then
+                Preview.ApplyPose(idx, character)
+            else
+                playSlotIdle(ped, idx, nil)
+            end
+        else
+            Preview.peds[idx] = spawnSlotPed(idx)
+            ped = Preview.peds[idx]
+        end
+
+        setPedSlotVisible(ped, idx == slotIndex, not character, idx)
+    end
+
+    for idx, ped in pairs(Preview.peds) do
+        local n = normalizeSlotIndex(idx)
+        if not keep[n] then
+            clearSlotExtras(n)
+            deletePedSafe(ped)
+            Preview.peds[idx] = nil
+        end
+    end
 end
 
 function Preview.Cleanup()

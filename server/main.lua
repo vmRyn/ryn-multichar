@@ -98,7 +98,7 @@ lib.callback.register('ryn-multichar:server:selectSpawn', function(source, data)
 end)
 
 lib.callback.register('ryn-multichar:server:saveScenePose', function(source, data)
-    local success, result = SceneData.SavePose(source, data.citizenid, data.poseId)
+    local success, result = SceneData.SavePose(source, data.citizenid, data.poseId, data.sceneId)
     return { success = success, error = type(result) == 'string' and result or nil, scene_data = type(result) == 'table' and result or nil }
 end)
 

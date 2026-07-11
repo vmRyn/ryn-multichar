@@ -32,14 +32,27 @@ end)
 
 RegisterNUICallback('photoMode', function(data, cb)
     if data.enabled then
-        Photo.Enable(data.slotIndex)
-        SendNUIMessage({ action = 'photoMode', enabled = true })
-    else
-        Photo.Disable()
-        SetNuiFocus(true, true)
-        SendNUIMessage({ action = 'photoMode', enabled = false })
+        local slotIndex = tonumber(data.slotIndex) or Preview.activeSlot or 1
+        -- Do not auto-swap scenes on open — that caused black screens when the
+        -- saved scene IPL was still streaming. Photo UI picks the saved sceneId;
+        -- the player switches explicitly via the scene dropdown.
+        Photo.Enable(slotIndex)
+        SendNUIMessage({
+            action = 'photoMode',
+            enabled = true,
+            activeScene = Config.ActiveScene,
+        })
+        cb({ success = true, active = Photo.active, activeScene = Config.ActiveScene })
+        return
     end
-    cb({ success = true, active = Photo.active })
+
+    Photo.Disable()
+    if IsScreenFadedOut() then
+        DoScreenFadeIn(200)
+    end
+    SetNuiFocus(true, true)
+    SendNUIMessage({ action = 'photoMode', enabled = false, activeScene = Config.ActiveScene })
+    cb({ success = true, active = Photo.active, activeScene = Config.ActiveScene })
 end)
 
 RegisterNUICallback('photoModeInput', function(data, cb)
@@ -49,6 +62,24 @@ end)
 
 RegisterNUICallback('photoModeReset', function(_, cb)
     Photo.Reset()
+    cb('ok')
+end)
+
+RegisterNUICallback('setScene', function(data, cb)
+    local sceneId = data and data.sceneId
+    local slotIndex = tonumber(data and data.slotIndex) or Preview.activeSlot or 1
+    local ok = Scene.SwitchPreset(sceneId, slotIndex)
+    cb({ success = ok, activeScene = Config.ActiveScene })
+end)
+
+RegisterNUICallback('previewPose', function(data, cb)
+    if data and data.citizenid and data.poseId then
+        local sceneData = {
+            poseId = data.poseId,
+            sceneId = data.sceneId,
+        }
+        Preview.UpdateCharacterPose(data.citizenid, sceneData)
+    end
     cb('ok')
 end)
 
@@ -75,6 +106,8 @@ RegisterNUICallback('playCharacter', function(data, cb)
                 theme = Config.UI,
                 features = Scene.GetFeaturesForNui(),
                 posePresets = Scene.GetPosePresetsForNui(),
+                scenePresets = Scene.GetScenePresetsForNui(),
+                activeScene = Scene.GetActiveId(),
                 locations = locations,
                 citizenid = data.citizenid,
             },
@@ -164,6 +197,8 @@ RegisterNUICallback('selectSpawn', function(data, cb)
     local success = lib.callback.await('ryn-multichar:server:selectSpawn', false, data)
     -- Teardown + appearance apply happen in spawnSelected / TeleportTo
     if success then
+        -- Hide NUI (and clear toasts) before releasing focus — CEF freezes timers after.
+        SendNUIMessage({ action = 'close', immediate = true })
         SetNuiFocus(false, false)
     end
     cb({ success = success })

@@ -21,10 +21,16 @@ export interface Character {
   playtime?: number
   scene_data?: {
     poseId?: string
+    sceneId?: string
   }
 }
 
 export interface PosePreset {
+  id: string
+  label: string
+}
+
+export interface ScenePreset {
   id: string
   label: string
 }

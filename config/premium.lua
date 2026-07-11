@@ -135,38 +135,6 @@ Config.ScenePoses = {
                 },
             },
         },
-        sit_chair = {
-            label = 'Seated',
-            anim = {
-                dict = 'timetable@ron@ig_5_p3',
-                name = 'ig_5_p3_base',
-                flag = 1,
-            },
-            props = {
-                {
-                    model = 'prop_chair_01a',
-                    world = true,
-                    offset = vector3(0.0, -0.45, -0.55),
-                    rot = vector3(0.0, 0.0, 180.0),
-                },
-            },
-        },
-        sit_ground = {
-            label = 'Sit Ground',
-            anim = {
-                dict = 'anim@heists@fleeca_bank@ig_7_jetski_owner',
-                name = 'owner_idle',
-                flag = 1,
-            },
-        },
-        kneel = {
-            label = 'Kneel',
-            anim = {
-                dict = 'amb@medic@standing@kneel@base',
-                name = 'base',
-                flag = 1,
-            },
-        },
     },
 }
 

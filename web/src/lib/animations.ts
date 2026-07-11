@@ -18,20 +18,17 @@ function revealInstantly(elements: Element | NodeListOf<Element> | null) {
 export function animateCharacterEntrance(root: ParentNode) {
   const chrome = root.querySelector('[data-animate="chrome"]')
   const dock = root.querySelector('[data-animate="dock"]')
-  const sideLeft = root.querySelector('[data-animate="side-left"]')
   const sideRight = root.querySelector('[data-animate="side-right"]')
 
   if (prefersReducedMotion()) {
     revealInstantly(chrome)
     revealInstantly(dock)
-    revealInstantly(sideLeft)
     revealInstantly(sideRight)
     return
   }
 
   if (chrome instanceof HTMLElement) chrome.style.pointerEvents = ''
   if (dock instanceof HTMLElement) dock.style.pointerEvents = ''
-  if (sideLeft instanceof HTMLElement) sideLeft.style.pointerEvents = ''
   if (sideRight instanceof HTMLElement) sideRight.style.pointerEvents = ''
 
   if (chrome) {
@@ -39,16 +36,6 @@ export function animateCharacterEntrance(root: ParentNode) {
       opacity: [0, 1],
       translateY: [-12, 0],
       duration: DURATION,
-      ease: EASE,
-    })
-  }
-
-  if (sideLeft) {
-    animate(sideLeft, {
-      opacity: [0, 1],
-      translateX: [-18, 0],
-      duration: DURATION + 20,
-      delay: 40,
       ease: EASE,
     })
   }
@@ -77,9 +64,8 @@ export function animateCharacterEntrance(root: ParentNode) {
 export function animateSelectChromeOut(root: ParentNode): Promise<void> {
   const chrome = root.querySelector('[data-animate="chrome"]')
   const dock = root.querySelector('[data-animate="dock"]')
-  const sideLeft = root.querySelector('[data-animate="side-left"]')
   const sideRight = root.querySelector('[data-animate="side-right"]')
-  const targets = [chrome, sideLeft, sideRight, dock].filter(Boolean) as HTMLElement[]
+  const targets = [chrome, sideRight, dock].filter(Boolean) as HTMLElement[]
 
   if (!targets.length) return Promise.resolve()
 
@@ -107,17 +93,6 @@ export function animateSelectChromeOut(root: ParentNode): Promise<void> {
         opacity: [1, 0],
         translateY: [0, -12],
         duration: 180,
-        ease: EASE,
-        onComplete: onDone,
-      })
-    }
-
-    if (sideLeft) {
-      animate(sideLeft, {
-        opacity: [1, 0],
-        translateX: [0, -18],
-        duration: 200,
-        delay: 20,
         ease: EASE,
         onComplete: onDone,
       })

@@ -148,22 +148,22 @@
   --radius: 0.625rem;
   --background: transparent;
   --foreground: #f0f4fa;
-  --card: rgba(20, 28, 40, 0.94);
+  --card: #141c28;
   --card-foreground: #f0f4fa;
-  --popover: #0f1620;
+  --popover: #141c28;
   --popover-foreground: #f0f4fa;
   --primary: #2d7ff9;
   --primary-foreground: #ffffff;
-  --secondary: rgba(255, 255, 255, 0.04);
+  --secondary: #1a2433;
   --secondary-foreground: #f0f4fa;
-  --muted: rgba(15, 22, 32, 0.8);
+  --muted: #0f1620;
   --muted-foreground: #6b7a94;
-  --accent: rgba(255, 255, 255, 0.05);
+  --accent: #1a2433;
   --accent-foreground: #f0f4fa;
   --destructive: #dc2626;
   --destructive-foreground: #fef2f2;
   --border: rgba(45, 127, 249, 0.14);
-  --input: rgba(255, 255, 255, 0.04);
+  --input: #0f1620;
   --ring: #2d7ff9;
   --info: #2d7ff9;
   --info-foreground: #f0f4fa;
@@ -180,13 +180,13 @@
   --sidebar-foreground: #6b7a94;
   --sidebar-primary: #2d7ff9;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(255, 255, 255, 0.04);
+  --sidebar-accent: #1a2433;
   --sidebar-accent-foreground: #f0f4fa;
   --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-ring: #2d7ff9;
   --code: #141c28;
   --code-foreground: var(--foreground);
-  --code-highlight: rgba(255, 255, 255, 0.04);
+  --code-highlight: #1a2433;
 }
 
 @layer base {
@@ -209,12 +209,20 @@
   }
 }
 
-/* Browser dev preview backdrop */
+/* Browser dev preview — random city photo stands in for the 3D scene */
 body.dev-preview {
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, color-mix(in srgb, #2d7ff9 6%, transparent) 0%, transparent 55%),
-    radial-gradient(ellipse 100% 80% at 50% 100%, color-mix(in srgb, #0a1018 90%, transparent) 0%, #05080d 70%),
-    #05080d;
+  background-color: #05080d;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(5, 8, 13, 0.55) 0%,
+      rgba(5, 8, 13, 0.28) 40%,
+      rgba(5, 8, 13, 0.72) 100%
+    ),
+    var(--dev-city-bg, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   user-select: auto;
 }
 

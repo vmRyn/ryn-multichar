@@ -7,8 +7,8 @@ export const demoTheme: UITheme = {
   serverName: 'RYN',
   colors: {
     primary: '#2D7FF9',
-    background: 'rgba(5, 8, 13, 0.92)',
-    surface: 'rgba(15, 22, 32, 0.88)',
+    background: '#05080D',
+    surface: '#0F1620',
     border: 'rgba(45, 127, 249, 0.14)',
     text: '#F0F4FA',
     textMuted: '#6B7A94',
@@ -40,9 +40,13 @@ export const demoPosePresets = [
   { id: 'bong', label: 'Hitting the Bong' },
   { id: 'coffee', label: 'Coffee' },
   { id: 'beer', label: 'Beer' },
-  { id: 'sit_chair', label: 'Seated' },
-  { id: 'sit_ground', label: 'Sit Ground' },
-  { id: 'kneel', label: 'Kneel' },
+]
+
+export const demoScenePresets = [
+  { id: 'apartment', label: 'Apartment' },
+  { id: 'studio', label: 'Studio' },
+  { id: 'rooftop', label: 'Rooftop' },
+  { id: 'void', label: 'Void' },
 ]
 
 export const demoCharacters: Character[] = [

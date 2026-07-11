@@ -1,4 +1,4 @@
-Config.ActiveScene = 'apartment'
+Config.ActiveScene = 'yacht'
 
 --[[
     Scene presets — switch with Config.ActiveScene.
@@ -6,7 +6,8 @@ Config.ActiveScene = 'apartment'
       /ryn_scene_pos  — copy ped vector4 to clipboard
       /ryn_scene_cam  — copy camera block to clipboard
 
-    Presets: apartment | studio | rooftop | void
+    Presets: apartment | yacht
+    idleAnim is the default look per slot when the character has no saved pose.
 ]]
 
 Config.ScenePresets = {
@@ -25,30 +26,35 @@ Config.ScenePresets = {
                 idleAnim = {
                     dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
                     name = 'idle_a',
+                    flag = 1,
                 },
             },
             [2] = {
-                ped = vector4(-788.65, 315.79, 217.64, 90.0),
+                ped = vector4(-785.33, 329.19, 217.04, 99.42),
+                -- ~4.14m in front of ped (same framing as slot 1)
                 camera = {
-                    pos = vector3(-784.85, 315.79, 218.45),
-                    rot = vector3(-5.0, 0.0, 270.0),
-                    fov = 42.0,
+                    pos = vector3(-781.25, 328.51, 217.75),
+                    rot = vector3(-4.0, 0.0, 279.42),
+                    fov = 44.0,
                 },
                 idleAnim = {
-                    dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
+                    dict = 'amb@world_human_hang_out_street@male_c@idle_a',
                     name = 'idle_a',
+                    flag = 1,
                 },
             },
             [3] = {
-                ped = vector4(-787.3, 318.15, 217.64, 180.0),
+                ped = vector4(-796.08, 327.22, 217.04, 140.80),
+                -- ~4.14m in front of ped (same framing as slot 1)
                 camera = {
-                    pos = vector3(-787.3, 321.35, 218.45),
-                    rot = vector3(-5.0, 0.0, 180.0),
-                    fov = 42.0,
+                    pos = vector3(-793.47, 324.00, 217.75),
+                    rot = vector3(-4.0, 0.0, 320.80),
+                    fov = 44.0,
                 },
                 idleAnim = {
-                    dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
+                    dict = 'amb@world_human_leaning@male@wall@back@foot_up@idle_a',
                     name = 'idle_a',
+                    flag = 1,
                 },
             },
         },
@@ -57,123 +63,54 @@ Config.ScenePresets = {
         time = { hour = 14, minute = 0 },
     },
 
-    studio = {
-        type = 'studio',
-        coords = vector3(-75.0, -818.0, 326.0),
+    yacht = {
+        type = 'yacht',
+        coords = vector3(-2058.27, -1024.50, 9.95),
         ipl = nil,
         slots = {
             [1] = {
-                ped = vector4(-75.0, -818.0, 326.0, 180.0),
+                ped = vector4(-2045.73, -1023.99, 11.91, 140.26),
                 camera = {
-                    pos = vector3(-75.0, -820.5, 326.8),
-                    rot = vector3(-5.0, 0.0, 0.0),
-                    fov = 40.0,
+                    pos = vector3(-2047.98, -1026.67, 12.56),
+                    rot = vector3(-4.0, 0.0, 320.26),
+                    fov = 44.0,
                 },
                 idleAnim = {
                     dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
                     name = 'idle_a',
+                    flag = 1,
                 },
             },
             [2] = {
-                ped = vector4(-77.2, -818.0, 326.0, 140.0),
+                ped = vector4(-2092.80, -1015.54, 8.98, 250.55),
                 camera = {
-                    pos = vector3(-78.5, -820.0, 326.8),
-                    rot = vector3(-5.0, 0.0, 25.0),
-                    fov = 42.0,
+                    pos = vector3(-2089.22, -1016.81, 9.69),
+                    rot = vector3(-4.0, 0.0, 70.55),
+                    fov = 44.0,
+                },
+                idleAnim = {
+                    dict = 'amb@world_human_leaning@male@wall@back@foot_up@idle_a',
+                    name = 'idle_a',
+                    flag = 1,
                 },
             },
             [3] = {
-                ped = vector4(-72.8, -818.0, 326.0, 220.0),
+                ped = vector4(-2036.27, -1033.98, 8.97, 68.33),
                 camera = {
-                    pos = vector3(-71.5, -820.0, 326.8),
-                    rot = vector3(-5.0, 0.0, -25.0),
-                    fov = 42.0,
+                    pos = vector3(-2039.80, -1032.58, 9.68),
+                    rot = vector3(-4.0, 0.0, 248.33),
+                    fov = 44.0,
+                },
+                idleAnim = {
+                    dict = 'amb@world_human_stand_guard@male@base',
+                    name = 'base',
+                    flag = 1,
                 },
             },
         },
-        lighting = true,
-        weather = 'EXTRASUNNY',
+        lighting = false,
+        weather = 'CLEAR',
         time = { hour = 14, minute = 0 },
-    },
-
-    rooftop = {
-        type = 'rooftop',
-        coords = vector3(-141.50, -620.95, 168.82),
-        ipl = nil,
-        slots = {
-            [1] = {
-                ped = vector4(-143.20, -618.40, 168.82, 200.0),
-                posePreset = 'standing',
-                camera = {
-                    pos = vector3(-141.80, -621.80, 169.55),
-                    rot = vector3(-4.0, 0.0, 20.0),
-                    fov = 38.0,
-                },
-                idleAnim = {
-                    dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
-                    name = 'idle_a',
-                },
-            },
-            [2] = {
-                ped = vector4(-139.10, -622.60, 168.82, 110.0),
-                posePreset = 'lean_phone',
-                camera = {
-                    pos = vector3(-141.20, -624.40, 169.55),
-                    rot = vector3(-4.0, 0.0, 290.0),
-                    fov = 40.0,
-                },
-            },
-            [3] = {
-                ped = vector4(-144.80, -624.10, 168.82, 30.0),
-                camera = {
-                    pos = vector3(-146.60, -621.50, 169.55),
-                    rot = vector3(-4.0, 0.0, 210.0),
-                    fov = 40.0,
-                },
-                idleAnim = {
-                    dict = 'anim@amb@casino@hangout@ped_female@stand@02a@idles',
-                    name = 'idle_a',
-                },
-            },
-        },
-        lighting = false,
-        weather = 'CLEAR',
-        time = { hour = 20, minute = 30 },
-    },
-
-    void = {
-        type = 'void',
-        coords = vector3(0.0, 0.0, 500.0),
-        ipl = nil,
-        slots = {
-            [1] = {
-                ped = vector4(-1.5, 0.0, 500.0, 90.0),
-                camera = {
-                    pos = vector3(-4.0, 0.0, 500.8),
-                    rot = vector3(-2.0, 0.0, 90.0),
-                    fov = 35.0,
-                },
-            },
-            [2] = {
-                ped = vector4(0.0, 0.0, 500.0, 180.0),
-                camera = {
-                    pos = vector3(0.0, -3.0, 500.8),
-                    rot = vector3(-2.0, 0.0, 0.0),
-                    fov = 35.0,
-                },
-            },
-            [3] = {
-                ped = vector4(1.5, 0.0, 500.0, 270.0),
-                camera = {
-                    pos = vector3(4.0, 0.0, 500.8),
-                    rot = vector3(-2.0, 0.0, 270.0),
-                    fov = 35.0,
-                },
-            },
-        },
-        lighting = false,
-        weather = 'CLEAR',
-        time = { hour = 0, minute = 0 },
     },
 }
 

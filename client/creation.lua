@@ -118,6 +118,8 @@ function Creation.ReturnToCharacterSelect(slotIndex)
             slotLimit = slotLimit,
             features = Scene.GetFeaturesForNui(),
             posePresets = Scene.GetPosePresetsForNui(),
+            scenePresets = Scene.GetScenePresetsForNui(),
+            activeScene = Scene.GetActiveId(),
         },
     })
 end
@@ -189,6 +191,8 @@ function Creation.StartAppearance(characterData)
                         theme = Config.UI,
                         features = Scene.GetFeaturesForNui(),
                         posePresets = Scene.GetPosePresetsForNui(),
+                        scenePresets = Scene.GetScenePresetsForNui(),
+                        activeScene = Scene.GetActiveId(),
                         locations = locations,
                         citizenid = characterData.citizenid,
                     },

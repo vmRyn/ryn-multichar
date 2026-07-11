@@ -55,7 +55,7 @@ function SceneData.GetForCharacter(citizenid)
     return decodeSceneData(row and row.scene_data)
 end
 
-function SceneData.SavePose(source, citizenid, poseId)
+function SceneData.SavePose(source, citizenid, poseId, sceneId)
     if not Config.ScenePoses.enabled then return false, 'disabled' end
     if not Config.ScenePoses.presets[poseId] then return false, 'invalid_pose' end
 
@@ -75,6 +75,9 @@ function SceneData.SavePose(source, citizenid, poseId)
 
     local sceneData = SceneData.GetForCharacter(citizenid) or {}
     sceneData.poseId = poseId
+    if sceneId and Config.ScenePresets and Config.ScenePresets[sceneId] then
+        sceneData.sceneId = sceneId
+    end
 
     MySQL.insert.await([[
         INSERT INTO ryn_multichar_metadata (character_id, scene_data)

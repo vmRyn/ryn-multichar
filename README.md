@@ -5,7 +5,7 @@
 [![Frameworks](https://img.shields.io/badge/frameworks-QBox%20%7C%20QB%20%7C%20ESX-orange)](https://github.com/vmRyn/ryn-multichar)
 [![License](https://img.shields.io/badge/license-no%20redistribution-lightgrey)](LICENSE)
 
-A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **ESX**. One resource replaces the usual `qb-multicharacter` + `qb-spawn` stack with a single 3D scene, glassmorphic NUI, and config-driven setup.
+A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **ESX**. One resource replaces the usual `qb-multicharacter` + `qb-spawn` stack with a single 3D scene, React NUI, and config-driven setup.
 
 **Free to download and use** on your own FiveM server — no purchase required. Redistribution is not allowed; get it from the official repo only.
 
@@ -14,7 +14,7 @@ A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **E
 <p align="center">
   <img src="docs/images/character-select.png" alt="Character select — 3D scene with character dock and info panel" width="100%" />
   <br />
-  <em>Character select — live 3D previews, last played, and character info</em>
+  <em>Character select — live 3D previews, dock, and character info</em>
 </p>
 
 <p align="center">
@@ -47,13 +47,14 @@ A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **E
 
 ## Features
 
-- **3D character preview** — apartment / studio / rooftop / void scene presets with scripted camera
+- **3D character preview** — apartment and yacht scene presets with per-slot cameras and idle anims
 - **Full character flow** — select, create, delete (type name to confirm), info panel, spawn picker
 - **Framework bridge** — auto-detect or manual switch for QBox, QB, ESX
 - **Appearance support** — auto-detect illenium-appearance, fivem-appearance, qb-clothing, skinchanger
 - **Spawn options** — last location, public spawns, housing hooks (qb-houses, apartments, ps-housing)
 - **Slot management** — default limits, per-license overrides, Tebex, admin UI
-- **Extra features** — photo mode, per-character poses (props/vehicles), weather/time override
+- **Photo mode** — orbit camera, hide UI for clean shots, switch scene + pose, save per character
+- **Scene poses** — standing / lean / prop presets (no sit/kneel), optional props
 - **Locales** — English + Spanish (NUI and server notifications)
 - **Optional** — Discord webhooks, playtime tracking, Kenney UI sounds
 
@@ -65,7 +66,8 @@ A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **E
 |----------|----------|
 | [ox_lib](https://github.com/overextended/ox_lib) | Appearance script (illenium-appearance recommended) |
 | [oxmysql](https://github.com/overextended/oxmysql) | Housing scripts |
-| `qbx_core`, `qb-core`, or `es_extended` | Weather sync, Discord, Tebex |
+| `qbx_core`, `qb-core`, or `es_extended` | [bob74_ipl](https://github.com/Bob74/bob74_ipl) (cleaner apartment IPL) |
+| | Weather sync, Discord, Tebex |
 
 ---
 
@@ -100,6 +102,7 @@ Or download a ZIP from [github.com/vmRyn/ryn-multichar](https://github.com/vmRyn
    ```
 
    FiveM always serves `web/dist/` — source changes in `web/src/` do nothing until you rebuild.
+
 ### 3. Server cfg
 
 ```cfg
@@ -107,6 +110,7 @@ ensure ox_lib
 ensure oxmysql
 ensure qbx_core          # or qb-core / es_extended
 ensure illenium-appearance
+ensure bob74_ipl         # optional — apartment scene
 ensure ryn-multichar
 ```
 
@@ -139,7 +143,7 @@ Config.Framework = 'qbox'   -- or 'auto'
 | File | Purpose |
 |------|---------|
 | `config/shared.lua` | Framework, slots, spawns, UI theme, locale, Discord |
-| `config/scenes.lua` | Scene preset (`apartment`, `studio`, `rooftop`, `void`) + slot layout |
+| `config/scenes.lua` | Scene preset (`apartment`, `yacht`) + slot layout |
 | `config/appearance.lua` | Appearance provider detection |
 | `config/premium.lua` | Photo mode, scene poses, admin panel, weather sync |
 | `config/nationalities.lua` | Creation form nationality list |
@@ -161,12 +165,20 @@ Config.Slots = {
         -- ['license2:abc...'] = 5,
     },
 }
+
+Config.SpawnOptions = {
+    lastLocation = true,
+    publicSpawns = true,
+    housing = true,
+}
 ```
 
 ```lua
 -- config/scenes.lua
-Config.ActiveScene = 'apartment'   -- apartment | studio | rooftop | void
+Config.ActiveScene = 'yacht'   -- apartment | yacht
 ```
+
+Add or edit presets under `Config.ScenePresets`. Each slot needs `ped`, `camera`, and optionally `idleAnim` (used when the character has no saved pose).
 
 ---
 
@@ -181,6 +193,12 @@ Admins can capture in-game coordinates for custom slot layouts:
 
 Requires `Config.SceneTools.enabled = true` (default). Paste values into `config/scenes.lua`.
 
+**Tips**
+
+- `coords` is the streaming anchor (hidden player). Slot `ped` is a `vector4`; camera should sit in front of the ped looking back at them.
+- In photo mode, players can switch between configured scenes; the live world updates without closing character select.
+- Apartment interiors stream farther apart per slot — keep cameras authored per room, not shared.
+
 ---
 
 ## Commands
@@ -192,6 +210,8 @@ Requires `Config.SceneTools.enabled = true` (default). Paste values into `config
 | `/addslots [id] [amount]` | Admin | Add slots to a player |
 | `/enablechar [id] [amount?]` | Admin | Enable extra slots (default +1) |
 | `/charslots` | Admin | Open DB-backed slot management UI |
+| `/ryn_scene_pos` | Admin | Copy ped position for scene config |
+| `/ryn_scene_cam` | Admin | Copy camera block for scene config |
 
 ---
 
@@ -258,7 +278,7 @@ exports['ryn-multichar']:GrantTebexPackageToPlayer(source, packageId)
 ryn-multichar/
 ├── config/          # Shared Lua configuration
 ├── bridge/          # QB / ESX / QBox adapters
-├── client/          # Scene, camera, preview, NUI callbacks
+├── client/          # Scene, camera, preview, photo, NUI callbacks
 ├── server/          # Characters, slots, spawn, housing, Tebex
 ├── shared/          # Utils + config validation
 ├── web/             # React NUI (src + dist)
@@ -281,6 +301,12 @@ npm run dev
 
 Open `http://localhost:5173/` and use the **Dev** panel (top-right) to switch screens.
 
+After UI changes, rebuild for the game client:
+
+```bash
+cd web && npm run build
+```
+
 ---
 
 ## Testing checklist
@@ -290,16 +316,18 @@ Primary validation path is QBox; QB and ESX should follow the same flow after fr
 - [ ] SQL tables created
 - [ ] Resource starts; framework detected in console
 - [ ] Character select opens on connect
-- [ ] Slot switch updates 3D preview + camera
+- [ ] Slot switch updates 3D preview + camera (all slots, including apartment rooms 2/3)
 - [ ] Create → appearance → spawn → fade in as freemode ped
 - [ ] Cancel appearance removes the incomplete character
 - [ ] Public spawns work (and last location when `Config.SpawnOptions.lastLocation = true`)
 - [ ] Housing spawns appear (if applicable)
 - [ ] Failed spawn keeps the selector open
+- [ ] UI clears fully after spawn (no stuck toast/overlay)
 - [ ] Delete requires full name
 - [ ] Info panel: job, cash, bank, playtime
 - [ ] `/relog` returns to character select
-- [ ] Photo mode + pose save
+- [ ] Photo mode: orbit, hide UI, save pose, exit cleanly
+- [ ] Photo mode: switch yacht ↔ apartment, then save/exit (camera frames the ped)
 - [ ] Admin `/charslots` persists to DB
 - [ ] Discord webhooks (if enabled)
 
@@ -313,6 +341,8 @@ Primary validation path is QBox; QB and ESX should follow the same flow after fr
 | UI blank / old | Run `cd web && npm run build`, restart resource |
 | Characters not loading (QBox) | Confirm `useExternalCharacters = true` in qbx_core |
 | Appearance not on preview ped | Check appearance resource is started; see `config/appearance.lua` |
+| Apartment black / unfinished | Start `bob74_ipl` or ensure the IPL loads; wait for interior streaming |
+| Slot camera looks at a wall | Re-author that slot with `/ryn_scene_cam`; focus is per-slot, not scene center |
 | Housing spawns missing | Verify housing script + DB tables match `server/housing.lua` queries |
 | Config warnings on start | Enable `Config.Debug = true` for details |
 

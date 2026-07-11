@@ -99,6 +99,8 @@ local function openCharacterSelect()
                 slotLimit = slotLimit,
                 features = Scene.GetFeaturesForNui(),
                 posePresets = Scene.GetPosePresetsForNui(),
+                scenePresets = Scene.GetScenePresetsForNui(),
+                activeScene = Scene.GetActiveId(),
             },
         })
     end)
@@ -229,6 +231,8 @@ exports('OpenSpawnSelector', function(characterData)
             theme = Config.UI,
             features = Scene.GetFeaturesForNui(),
             posePresets = Scene.GetPosePresetsForNui(),
+            scenePresets = Scene.GetScenePresetsForNui(),
+            activeScene = Scene.GetActiveId(),
             locations = locations,
             citizenid = citizenid,
         },

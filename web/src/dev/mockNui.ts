@@ -99,7 +99,11 @@ export async function mockFetchNui<T = unknown>(event: string, data?: unknown): 
 
     case 'photoMode':
       console.log('[ryn-multichar dev] Photo mode:', data)
-      return { success: true, active: !!(data as { enabled?: boolean }).enabled } as T
+      return {
+        success: true,
+        active: !!(data as { enabled?: boolean }).enabled,
+        activeScene: 'apartment',
+      } as T
 
     case 'photoModeInput':
       console.log('[ryn-multichar dev] Photo input:', data)
@@ -108,14 +112,37 @@ export async function mockFetchNui<T = unknown>(event: string, data?: unknown): 
     case 'photoModeReset':
       return 'ok' as T
 
+    case 'setScene': {
+      const payload = data as { sceneId?: string }
+      console.log('[ryn-multichar dev] Set scene:', payload.sceneId)
+      return { success: true, activeScene: payload.sceneId ?? 'apartment' } as T
+    }
+
+    case 'previewPose':
+      console.log('[ryn-multichar dev] Preview pose:', data)
+      return 'ok' as T
+
     case 'saveScenePose': {
-      const payload = data as { citizenid: string; poseId: string }
+      const payload = data as { citizenid: string; poseId: string; sceneId?: string }
       characters = characters.map((character) =>
         character.citizenid === payload.citizenid
-          ? { ...character, scene_data: { ...(character.scene_data ?? {}), poseId: payload.poseId } }
+          ? {
+              ...character,
+              scene_data: {
+                ...(character.scene_data ?? {}),
+                poseId: payload.poseId,
+                ...(payload.sceneId ? { sceneId: payload.sceneId } : {}),
+              },
+            }
           : character,
       )
-      return { success: true, scene_data: { poseId: payload.poseId } } as T
+      return {
+        success: true,
+        scene_data: {
+          poseId: payload.poseId,
+          ...(payload.sceneId ? { sceneId: payload.sceneId } : {}),
+        },
+      } as T
     }
 
     case 'adminListEntries': {

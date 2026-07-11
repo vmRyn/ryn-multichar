@@ -60,6 +60,39 @@ local function getOrbitPosition(focusPos, yaw, pitch, distance)
     )
 end
 
+--- Build orbit yaw/pitch/distance from the authored slot camera so photo mode
+--- starts on the same framing as character select (not a sideways rot.z hack).
+local function orbitFromAuthoredCamera(focusPos, camConfig)
+    local defaults = {
+        yaw = 0.0,
+        pitch = -8.0,
+        distance = Config.PhotoMode.defaultDistance,
+        fov = Config.PhotoMode.defaultFov,
+    }
+
+    if not camConfig or not camConfig.pos then
+        return defaults
+    end
+
+    local offset = camConfig.pos - focusPos
+    local distance = #offset
+    if distance < 0.15 then
+        return defaults
+    end
+
+    local horizontal = math.sqrt((offset.x * offset.x) + (offset.y * offset.y))
+    -- Matches getOrbitPosition: x = sin(yaw), y = cos(yaw)
+    local yaw = math.deg(math.atan(offset.x, offset.y))
+    local pitch = math.deg(math.atan(offset.z, horizontal))
+
+    return {
+        yaw = yaw,
+        pitch = clamp(pitch, Config.PhotoMode.pitchMin, Config.PhotoMode.pitchMax),
+        distance = clamp(distance, Config.PhotoMode.minDistance, Config.PhotoMode.maxDistance),
+        fov = camConfig.fov or Config.PhotoMode.defaultFov,
+    }
+end
+
 function Camera.ApplyOrbit(slotIndex)
     if not Camera.cam then ensureCam() end
     if not Camera.cam then return end
@@ -76,18 +109,18 @@ function Camera.ApplyOrbit(slotIndex)
 end
 
 function Camera.ResetOrbit(slotIndex)
-    local camConfig = Scene.GetSlotCamera(slotIndex or Camera.focusSlot)
-    Camera.orbit = {
-        yaw = camConfig and camConfig.rot.z or 0.0,
-        pitch = camConfig and camConfig.rot.x or -8.0,
-        distance = Config.PhotoMode.defaultDistance,
-        fov = camConfig and (camConfig.fov or Config.PhotoMode.defaultFov) or Config.PhotoMode.defaultFov,
-    }
+    slotIndex = slotIndex or Camera.focusSlot
+    local focusPos = getFocusPosition(slotIndex)
+    local camConfig = Scene.GetSlotCamera(slotIndex)
+    Camera.orbit = orbitFromAuthoredCamera(focusPos, camConfig)
     Camera.ApplyOrbit(slotIndex)
 end
 
 function Camera.EnablePhotoMode(slotIndex)
     if not Config.PhotoMode.enabled then return false end
+
+    -- Cancel any pending exit snaps from DisablePhotoMode.
+    Camera._exitSnapId = (Camera._exitSnapId or 0) + 1
 
     Camera.photoMode = true
     Camera.previewing = false
@@ -100,10 +133,48 @@ function Camera.EnablePhotoMode(slotIndex)
 end
 
 function Camera.DisablePhotoMode(slotIndex)
+    slotIndex = tonumber(slotIndex) or Camera.focusSlot or 1
     Camera.photoMode = false
     Camera.previewing = false
     Camera.transitioning = false
-    Camera.Activate(slotIndex or Camera.focusSlot or 1)
+    Camera._exitSnapId = (Camera._exitSnapId or 0) + 1
+    local snapId = Camera._exitSnapId
+
+    if Camera.cam then
+        StopCamPointing(Camera.cam)
+    end
+
+    if Scene and Scene.RequestSlotCollision then
+        Scene.RequestSlotCollision(slotIndex)
+    end
+
+    Camera.Activate(slotIndex)
+
+    -- Yacht→apartment (and other IPL swaps) often finish streaming after the first snap.
+    CreateThread(function()
+        local guardSlot = slotIndex
+        local guardScene = Config.ActiveScene
+        for _, delay in ipairs({ 0, 150, 400, 800 }) do
+            if delay > 0 then Wait(delay) end
+            if Camera._exitSnapId ~= snapId then return end
+            if Camera.photoMode then return end
+            if Config.ActiveScene ~= guardScene then return end
+
+            local coords = Scene.GetSlotCoords(guardSlot)
+            local ped = Preview.peds and Preview.peds[guardSlot]
+            if coords and ped and DoesEntityExist(ped) then
+                RequestCollisionAtCoord(coords.x, coords.y, coords.z)
+                SetEntityCoordsNoOffset(ped, coords.x, coords.y, coords.z, false, false, false)
+                SetEntityHeading(ped, coords.w or 0.0)
+                FreezeEntityPosition(ped, true)
+            end
+
+            if Scene and Scene.RequestSlotCollision then
+                Scene.RequestSlotCollision(guardSlot)
+            end
+            Camera.Activate(guardSlot)
+        end
+    end)
 end
 
 function Camera.AdjustOrbit(deltaYaw, deltaPitch, deltaZoom, deltaFov)
@@ -137,11 +208,25 @@ function Camera.Activate(slotIndex)
     local camConfig = Scene.GetSlotCamera(slotIndex)
     if not camConfig then return end
 
+    -- Pull streaming toward this slot (apartment rooms 2/3 are far from scene.coords).
+    local slotCoords = Scene.GetSlotCoords(slotIndex)
+    if slotCoords then
+        SetFocusPosAndVel(slotCoords.x, slotCoords.y, slotCoords.z, 0.0, 0.0, 0.0)
+        RequestCollisionAtCoord(slotCoords.x, slotCoords.y, slotCoords.z)
+    end
+    RequestCollisionAtCoord(camConfig.pos.x, camConfig.pos.y, camConfig.pos.z)
+    SetFocusPosAndVel(camConfig.pos.x, camConfig.pos.y, camConfig.pos.z, 0.0, 0.0, 0.0)
+
     -- Reuse the existing cam so we never drop RenderScriptCams (that flash is black/dark).
     ensureCam()
+
+    -- Photo/orbit mode uses PointCamAtCoord; that keeps overriding SetCamRot until cleared.
+    StopCamPointing(Camera.cam)
+
     SetCamCoord(Camera.cam, camConfig.pos.x, camConfig.pos.y, camConfig.pos.z)
     SetCamRot(Camera.cam, camConfig.rot.x, camConfig.rot.y, camConfig.rot.z, 2)
     SetCamFov(Camera.cam, camConfig.fof or camConfig.fov or 40.0)
+    SetCamActive(Camera.cam, true)
     RenderScriptCams(true, false, 0, true, true)
 
     Camera.active = true
@@ -226,6 +311,10 @@ function Camera.FocusSlot(slotIndex)
     slotIndex = tonumber(slotIndex) or slotIndex
     Camera.focusSlot = slotIndex
     Camera.previewing = false
+
+    if Scene and Scene.RequestSlotCollision then
+        Scene.RequestSlotCollision(slotIndex)
+    end
 
     if Camera.photoMode then
         Camera.ApplyOrbit(slotIndex)

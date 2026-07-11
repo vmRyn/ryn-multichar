@@ -1,5 +1,5 @@
 /* ── RYN AAA Design System ───────────────────────────────────────────────────
-   Royal Blue · Deep Navy · Cinematic Dark · 8px Grid · Purposeful Glass
+   Royal Blue · Deep Navy · Cinematic Dark · 8px Grid · Solid surfaces
    Inspired by CoD MWII / Division / Destiny — not FiveM generic
    Config.UI.colors → --nui-* at runtime
    ─────────────────────────────────────────────────────────────────────── */
@@ -26,8 +26,8 @@
 
   /* Royal Blue palette — defaults, overridden by Config.UI */
   --nui-primary: #2d7ff9;
-  --nui-background: rgba(5, 8, 13, 0.92);
-  --nui-surface: rgba(15, 22, 32, 0.88);
+  --nui-background: #05080d;
+  --nui-surface: #0f1620;
   --nui-border: rgba(45, 127, 249, 0.14);
   --nui-text: #f0f4fa;
   --nui-text-muted: #6b7a94;
@@ -40,6 +40,7 @@
   --ryn-slate: #0f1620;
   --ryn-charcoal: #141c28;
   --ryn-elevated: #1a2433;
+  --ryn-surface-active: #1c304e;
 
   --ryn-accent: var(--nui-primary);
   --ryn-accent-bright: #4d9aff;
@@ -69,22 +70,22 @@
 .dark {
   --background: transparent;
   --foreground: var(--ryn-text);
-  --card: color-mix(in srgb, var(--ryn-charcoal) 94%, transparent);
+  --card: var(--ryn-charcoal);
   --card-foreground: var(--ryn-text);
-  --popover: color-mix(in srgb, var(--ryn-navy) 96%, var(--ryn-accent) 4%);
+  --popover: var(--ryn-charcoal);
   --popover-foreground: var(--ryn-text);
   --primary: var(--ryn-accent);
   --primary-foreground: #ffffff;
-  --secondary: rgba(255, 255, 255, 0.04);
+  --secondary: var(--ryn-elevated);
   --secondary-foreground: var(--ryn-text);
-  --muted: color-mix(in srgb, var(--ryn-slate) 80%, transparent);
+  --muted: var(--ryn-slate);
   --muted-foreground: var(--ryn-text-muted);
-  --accent: rgba(255, 255, 255, 0.05);
+  --accent: var(--ryn-elevated);
   --accent-foreground: var(--ryn-text);
   --destructive: var(--ryn-danger);
   --destructive-foreground: #fef2f2;
   --border: var(--ryn-border);
-  --input: rgba(255, 255, 255, 0.04);
+  --input: var(--ryn-slate);
   --ring: var(--ryn-accent);
   --success: var(--ryn-success);
   --warning: var(--ryn-warning);
@@ -244,7 +245,7 @@
   padding: 6px 14px;
   border-radius: 999px;
   border: 1px solid var(--ryn-border-subtle);
-  background: rgba(20, 28, 40, 0.88);
+  background: var(--ryn-charcoal);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: var(--ryn-text-muted);
@@ -264,14 +265,10 @@
   padding: var(--ryn-space-2);
   border-radius: var(--ryn-radius-lg);
   border: 1px solid var(--ryn-border-subtle);
-  background: rgba(14, 20, 30, 0.82);
-  box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.7);
+  background: var(--ryn-slate);
+  box-shadow: 0 16px 32px -20px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
   transition: opacity var(--ryn-duration) var(--ryn-ease), visibility var(--ryn-duration) var(--ryn-ease);
-}
-
-.ryn-side-panel--left {
-  left: var(--ryn-space-4);
 }
 
 .ryn-side-panel--right {
@@ -322,28 +319,6 @@
   line-height: 1.35;
 }
 
-.ryn-recent-card {
-  margin-top: var(--ryn-space-2);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px;
-  border-radius: var(--ryn-radius);
-  border: 1px solid var(--ryn-border-subtle);
-  background: rgba(255, 255, 255, 0.03);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color var(--ryn-duration) var(--ryn-ease),
-    background var(--ryn-duration) var(--ryn-ease);
-}
-
-.ryn-recent-card:hover {
-  border-color: rgba(45, 127, 249, 0.35);
-  background: rgba(45, 127, 249, 0.08);
-}
-
 .ryn-avatar,
 .ryn-slot-avatar {
   display: inline-flex;
@@ -359,28 +334,6 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--ryn-accent-bright);
-}
-
-.ryn-recent-card__text {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ryn-recent-card__name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ryn-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ryn-recent-card__id {
-  font-size: 11px;
-  color: var(--ryn-text-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .ryn-info-identity__name {
@@ -518,11 +471,11 @@
   padding: 14px;
   border-radius: var(--ryn-radius-md);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(14, 20, 30, 0.82);
+  background: var(--ryn-slate);
   text-align: left;
   cursor: pointer;
   outline: none;
-  box-shadow: 0 16px 32px -24px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 10px 24px -18px rgba(0, 0, 0, 0.55);
   transition:
     background var(--ryn-duration) var(--ryn-ease),
     border-color var(--ryn-duration) var(--ryn-ease),
@@ -536,7 +489,7 @@
 
 .ryn-slot:hover {
   border-color: rgba(45, 127, 249, 0.28);
-  background: rgba(20, 28, 40, 0.9);
+  background: var(--ryn-charcoal);
 }
 
 .ryn-slot:focus-visible {
@@ -555,10 +508,10 @@
 
 .ryn-slot-active {
   border-color: rgba(45, 127, 249, 0.45);
-  background: rgba(28, 48, 78, 0.88);
+  background: var(--ryn-surface-active);
   box-shadow:
     0 0 0 1px rgba(45, 127, 249, 0.12) inset,
-    0 12px 28px -12px rgba(45, 127, 249, 0.35);
+    0 8px 20px -12px rgba(45, 127, 249, 0.28);
 }
 
 .ryn-slot-empty {
@@ -651,7 +604,7 @@
   min-height: 108px;
   border-radius: var(--ryn-radius-md);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(14, 20, 30, 0.82);
+  background: var(--ryn-slate);
 }
 
 @media (max-width: 1100px) {
@@ -665,10 +618,6 @@
 }
 
 @media (max-width: 900px) {
-  .ryn-side-panel--left {
-    display: none;
-  }
-
   .ryn-side-panel--right {
     width: min(280px, 36vw);
   }
@@ -724,11 +673,11 @@
   overflow: hidden;
   width: 100%;
   border-radius: var(--ryn-radius-lg);
-  background: rgba(20, 28, 40, 0.96);
+  background: var(--ryn-charcoal);
   border: 1px solid var(--ryn-border-subtle);
   box-shadow:
     0 0 0 1px rgba(45, 127, 249, 0.05) inset,
-    0 40px 80px -32px rgba(0, 0, 0, 0.8);
+    0 24px 48px -28px rgba(0, 0, 0, 0.55);
 }
 
 .ryn-surface::before {
@@ -754,10 +703,10 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--ryn-radius-lg);
-  background: rgba(14, 20, 30, 0.94);
+  background: var(--ryn-slate);
   border: 1px solid var(--ryn-border-subtle);
   padding: var(--ryn-space-3);
-  box-shadow: 0 28px 64px -28px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.55);
 }
 
 .ryn-panel::before {
@@ -969,8 +918,8 @@
   padding: var(--ryn-space-2);
   border-radius: var(--ryn-radius-lg);
   border: 1px solid var(--ryn-border-subtle);
-  background: rgba(14, 20, 30, 0.88);
-  box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.7);
+  background: var(--ryn-slate);
+  box-shadow: 0 16px 32px -20px rgba(0, 0, 0, 0.55);
   overflow: hidden;
 }
 
@@ -1308,14 +1257,12 @@
 .ryn-dev {
   border-radius: var(--ryn-radius);
   border: 1px solid var(--ryn-border-subtle);
-  background: color-mix(in srgb, var(--ryn-charcoal) 90%, transparent);
-  backdrop-filter: blur(16px);
+  background: var(--ryn-charcoal);
 }
 
 /* ── Entrance states ── */
 [data-animate="chrome"],
 [data-animate="dock"],
-[data-animate="side-left"],
 [data-animate="side-right"],
 [data-animate="spawn-item"],
 [data-animate="spawn-title"],
@@ -1327,7 +1274,6 @@
 
 .ryn-select-header:not(.ryn-select-header--hidden)[data-animate='chrome'],
 .ryn-dock-wrap:not(.ryn-dock-wrap--hidden) [data-animate='dock'],
-.ryn-side-panel:not(.ryn-side-panel--hidden)[data-animate='side-left'],
 .ryn-side-panel:not(.ryn-side-panel--hidden)[data-animate='side-right'] {
   opacity: 1;
 }
@@ -1361,64 +1307,30 @@
 }
 
 .ryn-photo-panel {
-  position: absolute;
-  top: 24px;
-  right: 24px;
   z-index: 30;
-  width: min(320px, calc(100vw - 48px));
-  padding: var(--ryn-space-2);
-  border-radius: var(--ryn-radius-lg);
-  border: 1px solid var(--ryn-border-subtle);
-  background: rgba(20, 28, 40, 0.96);
-  box-shadow: 0 24px 64px -24px rgba(0, 0, 0, 0.75);
-}
-
-.ryn-photo-panel__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: var(--ryn-space-2);
 }
 
-.ryn-photo-panel__title {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ryn-photo-panel__close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--ryn-radius-sm);
-  color: var(--ryn-text-muted);
-  transition: background var(--ryn-duration) var(--ryn-ease), color var(--ryn-duration) var(--ryn-ease);
-}
-
-.ryn-photo-panel__close:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--ryn-text);
-}
-
-.ryn-photo-panel__hint {
-  margin-top: 10px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ryn-text-muted);
+.ryn-photo-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ryn-space-2);
 }
 
 .ryn-photo-panel__field {
-  margin-top: var(--ryn-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.ryn-photo-panel__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: var(--ryn-space-2);
+.ryn-photo-panel__hotkey {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ryn-text-muted);
+  text-align: center;
 }
 
 /* ── Admin slot panel ── */
@@ -1577,7 +1489,7 @@
   padding: 20px 28px;
   border-radius: var(--ryn-radius-lg);
   border: 1px solid var(--ryn-border-subtle);
-  background: rgba(20, 28, 40, 0.96);
+  background: var(--ryn-charcoal);
 }
 
 .ryn-loading-overlay__spinner {
