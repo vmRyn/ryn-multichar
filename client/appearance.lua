@@ -3,6 +3,11 @@ Appearance = {
 }
 
 local DETECT_ORDER = { 'illenium-appearance', 'fivem-appearance', 'qb-clothing', 'skinchanger' }
+local STORY_PEDS = {
+    [`player_zero`] = true,
+    [`player_one`] = true,
+    [`player_two`] = true,
+}
 
 function Appearance.Detect()
     if Config.Appearance.provider ~= 'auto' then
@@ -84,16 +89,180 @@ function Appearance.ApplyToPed(ped, appearance, model)
 end
 
 ---@param citizenid string
+---@return table|nil appearance
+function Appearance.FetchPlayerAppearance(citizenid)
+    if not citizenid then return nil end
+
+    -- Single normalized payload from our server (model always included).
+    local appearance = lib.callback.await('ryn-multichar:server:getPlayerAppearance', false, citizenid)
+    if type(appearance) == 'table' and (appearance.model or appearance.components) then
+        return appearance
+    end
+
+    -- Fallback to framework preview helpers.
+    local clothing, model
+    if Bridge.name == 'qbox' then
+        clothing, model = lib.callback.await('qbx_core:server:getPreviewPedData', false, citizenid)
+    else
+        clothing, model = lib.callback.await('ryn-multichar:server:getPreviewData', false, citizenid)
+    end
+
+    if type(clothing) == 'string' then
+        local ok, decoded = pcall(json.decode, clothing)
+        clothing = ok and decoded or nil
+    end
+
+    if type(clothing) ~= 'table' then
+        clothing = {}
+    end
+
+    if not clothing.model then
+        if type(model) == 'string' and model ~= '' then
+            clothing.model = model
+        elseif model == `mp_f_freemode_01` then
+            clothing.model = 'mp_f_freemode_01'
+        elseif type(model) == 'number' and model ~= 0 then
+            clothing.model = 'mp_m_freemode_01'
+        end
+    end
+
+    if clothing.model or clothing.components then
+        return clothing
+    end
+
+    return nil
+end
+
+---@param citizenid string
 ---@return table|string|nil appearance
 ---@return number|nil model
 function Appearance.FetchPreviewData(citizenid)
-    if Bridge.name == 'qbox' then
-        local clothing, model = lib.callback.await('qbx_core:server:getPreviewPedData', false, citizenid)
-        return clothing, model
+    local appearance = Appearance.FetchPlayerAppearance(citizenid)
+    if not appearance then return nil, nil end
+
+    local model = appearance.model
+    if type(model) == 'string' then
+        model = joaat(model)
     end
 
-  -- Fallback: request from our server for other frameworks
-    return lib.callback.await('ryn-multichar:server:getPreviewData', false, citizenid)
+    return appearance, model
+end
+
+local function resolveFallbackModel()
+    local gender
+    if Bridge.name == 'qbox' then
+        local playerData = exports.qbx_core:GetPlayerData()
+        gender = playerData and playerData.charinfo and playerData.charinfo.gender
+    elseif Bridge.name == 'qb' then
+        local adapter = Bridge.GetClient()
+        local playerData = adapter and adapter.GetPlayerData and adapter.GetPlayerData()
+        gender = playerData and playerData.charinfo and playerData.charinfo.gender
+    end
+
+    if gender == 1 or gender == 'female' then
+        return 'mp_f_freemode_01'
+    end
+
+    return 'mp_m_freemode_01'
+end
+
+local function isStoryPed(ped)
+    if not ped or not DoesEntityExist(ped) then return true end
+    return STORY_PEDS[GetEntityModel(ped)] == true
+end
+
+local function setLocalPlayerModel(modelName)
+    local modelHash = type(modelName) == 'number' and modelName or joaat(modelName)
+    if not IsModelInCdimage(modelHash) or not IsModelValid(modelHash) then
+        modelHash = `mp_m_freemode_01`
+        modelName = 'mp_m_freemode_01'
+    end
+
+    lib.requestModel(modelHash, 5000)
+    SetPlayerModel(PlayerId(), modelHash)
+    Wait(250)
+    SetModelAsNoLongerNeeded(modelHash)
+
+    local ped = PlayerPedId()
+    SetPedDefaultComponentVariation(ped)
+    return ped, modelName
+end
+
+local function applySkinToLocalPed(ped, appearance)
+    if not ped or not appearance then return end
+
+    local provider = Appearance.GetProvider()
+
+    if provider == 'illenium-appearance' then
+        pcall(function()
+            exports['illenium-appearance']:setPedAppearance(ped, appearance)
+        end)
+    elseif provider == 'fivem-appearance' then
+        pcall(function()
+            exports['fivem-appearance']:setPedAppearance(ped, appearance)
+        end)
+    elseif provider == 'qb-clothing' then
+        TriggerEvent('qb-clothing:client:loadPlayerClothing', appearance, ped)
+    elseif provider == 'skinchanger' then
+        TriggerEvent('skinchanger:loadSkin', appearance)
+    elseif Config.CustomAppearance.applyPreview then
+        Config.CustomAppearance.applyPreview(ped, appearance)
+    end
+end
+
+--- Apply saved skin to the local player (not a preview ped).
+--- Always forces SetPlayerModel — never trust provider helpers alone.
+---@param citizenid string
+---@return boolean
+function Appearance.ApplyToLocalPlayer(citizenid)
+    if not citizenid then
+        print('^1[ryn-multichar] ApplyToLocalPlayer: missing citizenid^0')
+        return false
+    end
+
+    -- Tutorial session can block model swaps.
+    if NetworkIsInTutorialSession() then
+        NetworkEndTutorialSession()
+        local deadline = GetGameTimer() + 5000
+        while NetworkIsInTutorialSession() and GetGameTimer() < deadline do
+            Wait(0)
+        end
+    end
+
+    local appearance = Appearance.FetchPlayerAppearance(citizenid)
+    local modelName = (appearance and appearance.model) or resolveFallbackModel()
+    if type(modelName) == 'number' then
+        if modelName == `mp_f_freemode_01` then
+            modelName = 'mp_f_freemode_01'
+        else
+            modelName = 'mp_m_freemode_01'
+        end
+    end
+
+    Utils.Debug('ApplyToLocalPlayer', citizenid, modelName, Appearance.GetProvider())
+
+    local ped = setLocalPlayerModel(modelName)
+
+    -- If still a story ped, force freemode once more.
+    if isStoryPed(ped) then
+        print(('^3[ryn-multichar] Model swap failed (still story ped), forcing freemode for %s^0'):format(citizenid))
+        ped = setLocalPlayerModel(resolveFallbackModel())
+    end
+
+    if appearance then
+        applySkinToLocalPed(ped, appearance)
+    end
+
+    ped = PlayerPedId()
+    local success = not isStoryPed(ped)
+    if not success then
+        print(('^1[ryn-multichar] Failed to leave story ped for %s (model=%s)^0'):format(
+            citizenid,
+            GetEntityModel(ped)
+        ))
+    end
+
+    return success
 end
 
 function Appearance.OpenCreator(isNew, data, cb)
@@ -111,6 +280,7 @@ function Appearance.OpenCreator(isNew, data, cb)
                     headOverlays = true,
                     components = true,
                     props = true,
+                    tattoos = true,
                 })
             else
                 exports['illenium-appearance']:startPlayerCustomization(function(appearance)
@@ -118,26 +288,30 @@ function Appearance.OpenCreator(isNew, data, cb)
                 end)
             end
         end)
-        if ok then return end
+        if ok then return true end
     elseif provider == 'fivem-appearance' then
         local ok = pcall(function()
             exports['fivem-appearance']:startPlayerCustomization(function(appearance)
                 if cb then cb(appearance) end
             end)
         end)
-        if ok then return end
+        if ok then return true end
     elseif provider == 'qb-clothing' then
         TriggerEvent('qb-clothes:client:CreateFirstCharacter')
         if cb then cb(true) end
-        return
+        return true
     elseif provider == 'skinchanger' then
         TriggerEvent('esx_skin:openSaveableMenu', function()
             if cb then cb(true) end
         end)
-        return
+        return true
     end
 
     if Config.CustomAppearance.openCreator then
         Config.CustomAppearance.openCreator(isNew, data, cb)
+        return true
     end
+
+    print(('^1[ryn-multichar] No appearance creator for provider "%s"^0'):format(tostring(provider)))
+    return false
 end

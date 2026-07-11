@@ -55,25 +55,37 @@ Config.CreationFields = {
 Config.Spawns = {
     ['legion'] = {
         label = 'Legion Square',
+        description = 'Downtown Los Santos. Busy streets, easy access to the city center.',
         coords = vector4(195.17, -933.77, 29.7, 144.5),
         icon = 'map-pin',
     },
     ['policedp'] = {
         label = 'Police Department',
+        description = 'Mission Row PD. Start near the heart of law enforcement.',
         coords = vector4(428.23, -984.28, 29.76, 3.5),
         icon = 'shield',
     },
     ['paleto'] = {
         label = 'Paleto Bay',
+        description = 'Quiet northern town. Fresh air and a slower pace.',
         coords = vector4(80.35, 6424.12, 31.67, 45.5),
         icon = 'map-pin',
     },
 }
 
 Config.SpawnOptions = {
-    lastLocation = true,
+    lastLocation = false,
     publicSpawns = true,
     housing = true,
+}
+
+-- Bird's-eye preview while choosing a spawn
+Config.SpawnPreview = {
+    height = 55.0,
+    pullback = 32.0,
+    fov = 42.0,
+    pitch = -52.0,
+    transitionMs = 350,
 }
 
 Config.Housing = {
@@ -110,6 +122,8 @@ Config.Discord = {
 Config.UI = {
     locale = 'en', -- 'en' | 'es'
     theme = 'royal-blue',
+    -- Shown top-left in character select. Mark letter uses the first character.
+    serverName = 'RYN',
     colors = {
         primary = '#2D7FF9',
         background = 'rgba(5, 8, 13, 0.92)',
@@ -121,7 +135,7 @@ Config.UI = {
         warning = '#F59E0B',
         danger = '#DC2626',
     },
-    -- Optional server logo (URL or nui:// path). Leave empty for default RYN mark.
+    -- Optional server logo (URL or nui:// path). Leave empty for the serverName mark.
     logo = '',
     -- Kenney UI Audio (CC0) — bundled in web/public/sounds/kenney/
     -- Leave empty to use defaults; override with nui:// paths if needed

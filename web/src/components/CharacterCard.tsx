@@ -10,7 +10,7 @@ import {
   ContextMenuPopup,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { PlayIcon, Trash2Icon, InfoIcon, PlusIcon } from 'lucide-react'
+import { PlayIcon, Trash2Icon, InfoIcon, PlusIcon, UserRoundPlusIcon } from 'lucide-react'
 
 interface CharacterCardProps {
   character?: Character
@@ -22,6 +22,12 @@ interface CharacterCardProps {
   onDelete?: () => void
   onInfo?: () => void
   onCreate?: () => void
+}
+
+function initials(character: Character) {
+  const first = character.charinfo.firstname?.[0] ?? ''
+  const last = character.charinfo.lastname?.[0] ?? ''
+  return `${first}${last}`.toUpperCase() || '?'
 }
 
 export function CharacterCard({
@@ -67,7 +73,7 @@ export function CharacterCard({
                 : `${t('newCharacter')}, ${t('slot', { index: slotIndex })}`
             }
             aria-pressed={isActive}
-            className={cn('ryn-slot w-full', isActive && 'ryn-slot-active')}
+            className={cn('ryn-slot w-full', isActive && 'ryn-slot-active', isEmpty && 'ryn-slot-empty')}
             onClick={() => onSelect(slotIndex)}
             onDoubleClick={handleDoubleClick}
           >
@@ -75,13 +81,30 @@ export function CharacterCard({
               <span className="ryn-slot-recent" title={t('lastPlayed')} aria-label={t('lastPlayed')} />
             )}
 
-            <span className="ryn-slot-num">{slotLabel}</span>
-            <p className="ryn-slot-name">
-              {character ? getFullName(character.charinfo) : t('newCharacter')}
-            </p>
-            <p className="ryn-slot-job">
-              {character ? (character.job?.label ?? t('unemployed')) : t('createCharacter')}
-            </p>
+            {character ? (
+              <>
+                <span className="ryn-slot-avatar" aria-hidden>
+                  {initials(character)}
+                </span>
+                <span className="ryn-slot-body">
+                  <span className="ryn-slot-num">{slotLabel}</span>
+                  <p className="ryn-slot-name">{getFullName(character.charinfo)}</p>
+                  <p className="ryn-slot-job">{character.job?.label ?? t('unemployed')}</p>
+                  <p className="ryn-slot-id">{character.citizenid}</p>
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="ryn-slot-empty-icon" aria-hidden>
+                  <UserRoundPlusIcon className="size-6" strokeWidth={1.75} />
+                </span>
+                <span className="ryn-slot-body">
+                  <span className="ryn-slot-num">{slotLabel}</span>
+                  <p className="ryn-slot-name">{t('newCharacter')}</p>
+                  <p className="ryn-slot-job">{t('emptySlotClick')}</p>
+                </span>
+              </>
+            )}
           </button>
         </ContextMenuTrigger>
 

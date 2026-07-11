@@ -4,6 +4,7 @@ import { NATIONALITIES } from '../data/nationalities'
 export const demoTheme: UITheme = {
   theme: 'royal-blue',
   locale: 'en',
+  serverName: 'RYN',
   colors: {
     primary: '#2D7FF9',
     background: 'rgba(5, 8, 13, 0.92)',
@@ -32,69 +33,74 @@ export const demoCreationFields: CreationField[] = [
 
 export const demoPosePresets = [
   { id: 'standing', label: 'Standing' },
+  { id: 'crossed_arms', label: 'Crossed Arms' },
+  { id: 'lean_wall', label: 'Lean Wall' },
   { id: 'lean_phone', label: 'Lean & Phone' },
+  { id: 'smoking', label: 'Smoking' },
+  { id: 'bong', label: 'Hitting the Bong' },
+  { id: 'coffee', label: 'Coffee' },
+  { id: 'beer', label: 'Beer' },
   { id: 'sit_chair', label: 'Seated' },
-  { id: 'sports_car', label: 'Sports Car' },
-  { id: 'muscle_car', label: 'Muscle Car' },
+  { id: 'sit_ground', label: 'Sit Ground' },
+  { id: 'kneel', label: 'Kneel' },
 ]
 
 export const demoCharacters: Character[] = [
   {
     cid: 1,
     citizenid: 'RYN001',
-    charinfo: { firstname: 'Ryan', lastname: 'Mitchell', gender: 0 },
+    charinfo: { firstname: 'Ryan', lastname: 'Mitchell', gender: 0, birthdate: '1994-03-12', nationality: 'American' },
     job: { label: 'Police Officer', grade: { name: 'Sergeant' } },
     money: { cash: 2450, bank: 48320 },
     last_played: '2026-07-08 21:14:00',
     playtime: 142800,
-    scene_data: { poseId: 'sports_car' },
+    scene_data: { poseId: 'smoking' },
   },
   {
     cid: 2,
     citizenid: 'RYN002',
-    charinfo: { firstname: 'Alex', lastname: 'Carter', gender: 1 },
+    charinfo: { firstname: 'Alex', lastname: 'Carter', gender: 1, birthdate: '1998-11-02', nationality: 'Canadian' },
     job: { label: 'Mechanic', grade: { name: 'Employee' } },
     money: { cash: 890, bank: 12100 },
     last_played: '2026-07-05 18:42:00',
     playtime: 45600,
-    scene_data: { poseId: 'lean_phone' },
+    scene_data: { poseId: 'bong' },
   },
 ]
 
 export const demoSpawnLocations: SpawnLocation[] = [
   {
-    id: 'lastLocation',
-    label: 'Last Location',
-    icon: 'history',
-    coords: { x: 195.17, y: -933.77, z: 29.7, w: 144.5 },
-  },
-  {
     id: 'housing:ps-housing:42',
     label: '4 Integrity Way - Apt 12',
+    description: 'Spawn at your owned property.',
     icon: 'home',
     coords: { x: -47.52, y: -585.86, z: 37.95, w: 70.0 },
   },
   {
     id: 'housing:qb-houses:legion_1',
     label: 'Legion Square House',
+    description: 'Spawn at your owned property.',
     icon: 'home',
     coords: { x: 215.12, y: -810.45, z: 30.73, w: 250.0 },
   },
   {
     id: 'legion',
     label: 'Legion Square',
+    description: 'Downtown Los Santos. Busy streets, easy access to the city center.',
     icon: 'map-pin',
     coords: { x: 195.17, y: -933.77, z: 29.7, w: 144.5 },
   },
   {
     id: 'policedp',
     label: 'Police Department',
+    description: 'Mission Row PD. Start near the heart of law enforcement.',
     icon: 'shield',
     coords: { x: 428.23, y: -984.28, z: 29.76, w: 3.5 },
   },
   {
     id: 'paleto',
     label: 'Paleto Bay',
+    description: 'Quiet northern town. Fresh air and a slower pace.',
     icon: 'map-pin',
     coords: { x: 80.35, y: 6424.12, z: 31.67, w: 45.5 },
   },

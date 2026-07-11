@@ -5,7 +5,9 @@ export interface Character {
   charinfo: {
     firstname: string
     lastname: string
-    gender?: number
+    gender?: number | string
+    birthdate?: string
+    nationality?: string
   }
   job?: {
     label: string
@@ -58,6 +60,7 @@ export interface SpawnLocation {
   id: string
   label: string
   icon: string
+  description?: string
   coords?: { x: number; y: number; z: number; w?: number }
 }
 
@@ -72,6 +75,7 @@ export interface UISounds {
 
 export interface UITheme {
   theme: string
+  serverName?: string
   colors: {
     primary: string
     background: string

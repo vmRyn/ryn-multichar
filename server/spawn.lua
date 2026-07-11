@@ -18,6 +18,7 @@ function ServerSpawn.GetAvailable(source, citizenid)
         locations[#locations + 1] = {
             id = 'lastLocation',
             label = L('last_location'),
+            description = L('last_location_desc'),
             icon = 'history',
             coords = coordsToTable(adapter.GetLastLocation(source, citizenid)),
         }
@@ -29,6 +30,7 @@ function ServerSpawn.GetAvailable(source, citizenid)
             locations[#locations + 1] = {
                 id = loc.id,
                 label = loc.label,
+                description = loc.description or L('housing_spawn_desc'),
                 icon = loc.icon,
                 coords = coordsToTable(loc.coords),
             }
@@ -40,6 +42,7 @@ function ServerSpawn.GetAvailable(source, citizenid)
             locations[#locations + 1] = {
                 id = id,
                 label = spawn.label,
+                description = spawn.description,
                 icon = spawn.icon,
                 coords = coordsToTable(spawn.coords),
             }
@@ -88,6 +91,7 @@ function ServerSpawn.Select(source, data)
     local spawnData = ServerSpawn.Resolve(source, data.citizenid, data.locationId)
     if not spawnData or not spawnData.coords then return false end
 
+    spawnData.citizenid = data.citizenid
     Playtime.Start(source, data.citizenid)
     TriggerClientEvent('ryn-multichar:client:spawnSelected', source, spawnData)
     return true

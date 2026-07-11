@@ -114,6 +114,18 @@ function adapter.GetLastLocation(_source, citizenid)
 end
 
 function adapter.GetPreviewData(_source, citizenid)
+    local skinRow = MySQL.single.await(
+        'SELECT model, skin FROM playerskins WHERE citizenid = ? AND active = 1',
+        { citizenid }
+    )
+
+    if skinRow and skinRow.skin then
+        local skin = decodeJson(skinRow.skin, nil)
+        if skin then
+            return skin, skinRow.model and joaat(skinRow.model) or nil
+        end
+    end
+
     local row = MySQL.single.await(
         'SELECT metadata FROM players WHERE citizenid = ?',
         { citizenid }

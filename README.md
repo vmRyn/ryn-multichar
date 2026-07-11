@@ -136,6 +136,7 @@ Full reference: [CONFIG.md](CONFIG.md)
 -- config/shared.lua
 Config.Framework = 'auto'
 Config.UI.locale = 'en'   -- 'en' | 'es'
+Config.UI.serverName = 'RYN'  -- top-left brand; mark uses first letter
 
 Config.Slots = {
     default = 3,

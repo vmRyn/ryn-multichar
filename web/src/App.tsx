@@ -1,30 +1,29 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { CharacterDock } from '@/components/CharacterDock'
-import { CharacterChrome } from '@/components/CharacterChrome'
+import { SelectHeader } from '@/components/SelectHeader'
+import { RecentCharacterPanel } from '@/components/RecentCharacterPanel'
+import { CharacterInfoPanel } from '@/components/CharacterInfoPanel'
 import { CreationForm } from '@/components/CreationForm'
 import { SpawnSelector } from '@/components/SpawnSelector'
 import { PhotoModeOverlay } from '@/components/PhotoModeOverlay'
 import { AdminSlotPanel } from '@/components/AdminSlotPanel'
 import { SceneVignette } from '@/components/SceneVignette'
 import { RynModal } from '@/components/RynModal'
-import { fetchNui, useNuiEvent, getFullName, formatPlaytime, isDevMode } from '@/hooks/useNui'
+import { CharacterInfoModal } from '@/components/CharacterInfoModal'
+import { DeleteCharacterModal } from '@/components/DeleteCharacterModal'
+import { fetchNui, useNuiEvent, getFullName, isDevMode } from '@/hooks/useNui'
 import { useLocale, LocaleProvider } from '@/hooks/useLocale'
 import { useTheme } from '@/hooks/useTheme'
 import { useKeyboardNav } from '@/hooks/useKeyboardNav'
 import { DevPanel } from '@/dev/DevPanel'
 import { demoCharacters, demoCreationFields, demoSlotLimit, demoSpawnLocations, demoTheme, demoPosePresets } from '@/dev/demoData'
-import { getLastPlayedCitizenId, getCharacterForSlot } from '@/lib/characters'
+import { getLastPlayedCitizenId, getLastPlayedCharacter, getCharacterForSlot } from '@/lib/characters'
 import { notifyError, notifySuccess, notifyInfo } from '@/lib/toast'
 import { playUiSound } from '@/lib/sounds'
 import type { Character, CreationField, FeatureFlags, PosePreset, SpawnLocation, UITheme } from '@/types'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Field, FieldLabel } from '@/components/ui/field'
-import { InfoRow } from '@/components/InfoRow'
-import { PanelHeader } from '@/components/PanelHeader'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { getErrorMessage, getErrorTitle } from '@/lib/errors'
-import { animateCharacterEntrance, animateSpawnConfirm, animateUiClose } from '@/lib/animations'
+import { animateCharacterEntrance, animateSelectChromeOut, animateSelectChromeIn, animateSpawnConfirm, animateUiClose } from '@/lib/animations'
 
 type Screen = 'characterSelect' | 'creation' | 'spawnSelect' | 'deleteConfirm' | 'info'
 
@@ -55,14 +54,22 @@ function MulticharApp({
   const [adminOpen, setAdminOpen] = useState(false)
   const [spawning, setSpawning] = useState(false)
   const appRef = useRef<HTMLDivElement>(null)
+  const wasModalOpen = useRef(false)
 
   const deleteOpen = !!deleteTarget
   const infoOpen = !!infoCharacter
+  const modalOpen = deleteOpen || infoOpen
+  const selectChromeHidden = photoModeActive
 
   useTheme(theme)
 
   const lastPlayedCitizenId = useMemo(
     () => getLastPlayedCitizenId(characters),
+    [characters],
+  )
+
+  const lastPlayedCharacter = useMemo(
+    () => getLastPlayedCharacter(characters),
     [characters],
   )
 
@@ -153,15 +160,41 @@ function MulticharApp({
   }, [visible, screen, loadCharacters])
 
   useEffect(() => {
-    if (!visible || screen !== 'characterSelect' || loadingCharacters) return
+    if (!visible || screen !== 'characterSelect' || loadingCharacters || modalOpen || photoModeActive) return
     playEntrance()
-  }, [visible, screen, loadingCharacters, playEntrance])
+  }, [visible, screen, loadingCharacters, playEntrance, modalOpen, photoModeActive])
+
+  useEffect(() => {
+    if (!appRef.current || !visible || screen !== 'characterSelect' || photoModeActive) return
+
+    if (modalOpen) {
+      wasModalOpen.current = true
+      animateSelectChromeOut(appRef.current)
+      return
+    }
+
+    if (!wasModalOpen.current) return
+    wasModalOpen.current = false
+
+    const frame = requestAnimationFrame(() => {
+      if (appRef.current) animateSelectChromeIn(appRef.current)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [modalOpen, photoModeActive, screen, visible])
 
   const handleSelectSlot = useCallback((slotIndex: number) => {
     setActiveSlot(slotIndex)
     playUiSound('slotSelect')
     fetchNui('selectSlot', { slotIndex })
   }, [])
+
+  const handleSelectRecent = useCallback(
+    (character: Character) => {
+      const slot = character.cid ?? character.slot ?? 1
+      handleSelectSlot(slot)
+    },
+    [handleSelectSlot],
+  )
 
   const handlePlay = useCallback(async (character: Character) => {
     setInfoCharacter(null)
@@ -227,6 +260,9 @@ function MulticharApp({
         slotIndex: activeSlot,
       })
       if (result?.success && result.pending) {
+        // Appearance creator takes over — hide our NUI so it isn't stuck on this form.
+        setVisible(false)
+        playUiSound('confirm')
         return
       }
       if (result?.success) {
@@ -307,6 +343,12 @@ function MulticharApp({
       playUiSound('transition')
       return
     }
+    if (screen === 'spawnSelect') {
+      playUiSound('transition')
+      fetchNui('cancelSpawn').catch(() => {})
+      setScreen('characterSelect')
+      return
+    }
     if (screen !== 'characterSelect') {
       playUiSound('transition')
       setScreen('characterSelect')
@@ -341,31 +383,46 @@ function MulticharApp({
 
   return (
     <div ref={appRef} className="relative h-screen w-screen overflow-hidden">
-      <SceneVignette />
+      {screen !== 'spawnSelect' && <SceneVignette />}
       {dev && <DevPanel />}
 
       {(screen === 'characterSelect' || deleteOpen || infoOpen) && (
         <>
-          <CharacterChrome
-              characterCount={characters.length}
-              slotLimit={slotLimit}
-              logo={theme?.logo}
-              hidden={photoModeActive}
-            />
+          <SelectHeader
+            characterCount={characters.length}
+            slotLimit={slotLimit}
+            logo={theme?.logo}
+            serverName={theme?.serverName}
+            hidden={selectChromeHidden}
+          />
+          <RecentCharacterPanel
+            character={lastPlayedCharacter}
+            hidden={selectChromeHidden}
+            onSelect={handleSelectRecent}
+          />
+          <CharacterInfoPanel
+            character={activeCharacter}
+            slotIndex={activeSlot}
+            photoModeEnabled={features.photoMode}
+            hidden={selectChromeHidden}
+            onPlay={activeCharacter ? () => handlePlay(activeCharacter) : undefined}
+            onCreate={() => handleCreate(activeSlot)}
+            onDelete={activeCharacter ? () => handleDelete(activeCharacter) : undefined}
+            onInfo={activeCharacter ? () => handleInfo(activeCharacter) : undefined}
+            onPhotoMode={handlePhotoMode}
+          />
           <CharacterDock
             characters={characters}
             slotLimit={slotLimit}
             activeSlot={activeSlot}
             loading={loadingCharacters}
             lastPlayedCitizenId={lastPlayedCitizenId}
-            photoModeEnabled={features.photoMode}
-            hidden={photoModeActive}
+            hidden={selectChromeHidden}
             onSelectSlot={handleSelectSlot}
             onPlay={handlePlay}
             onDelete={handleDelete}
             onInfo={handleInfo}
             onCreate={handleCreate}
-            onPhotoMode={handlePhotoMode}
           />
         </>
       )}
@@ -395,83 +452,31 @@ function MulticharApp({
       {screen === 'spawnSelect' && (
         <SpawnSelector
           locations={spawnLocations}
-          onSelect={handleSpawnSelect}
+          onConfirm={handleSpawnSelect}
           onCancel={handleBack}
         />
       )}
 
-      <RynModal open={deleteOpen} onClose={handleBack} animationKey="delete">
-        <PanelHeader
-          eyebrow={t('confirmDeletion')}
-          title={t('deleteForever')}
-          subtitle={
-            deleteTarget ? (
-              <>
-                Type <strong className="text-foreground">{getFullName(deleteTarget.charinfo)}</strong> to confirm.
-              </>
-            ) : undefined
-          }
-        />
-        <Field>
-          <FieldLabel className="ryn-field-label">{t('characterName')}</FieldLabel>
-          <Input
-            value={deleteConfirmName}
-            onChange={(e) => setDeleteConfirmName(e.target.value)}
-            placeholder={t('characterName')}
+      <RynModal open={deleteOpen} onClose={handleBack} animationKey="delete" tone="danger">
+        {deleteTarget && (
+          <DeleteCharacterModal
+            character={deleteTarget}
+            confirmName={deleteConfirmName}
+            onConfirmNameChange={setDeleteConfirmName}
+            onConfirm={handleConfirmDelete}
+            onClose={handleBack}
           />
-        </Field>
-        <div className="ryn-modal-actions">
-          <Button
-            size="lg"
-            variant="destructive"
-            disabled={!deleteTarget || deleteConfirmName.trim() !== getFullName(deleteTarget.charinfo)}
-            onClick={handleConfirmDelete}
-          >
-            {t('deleteForever')}
-          </Button>
-          <Button size="lg" variant="outline" onClick={handleBack}>
-            {t('cancel')}
-          </Button>
-        </div>
+        )}
       </RynModal>
 
       <RynModal open={infoOpen} onClose={handleBack} animationKey="info">
-        <PanelHeader
-          eyebrow={t('character')}
-          title={infoCharacter ? getFullName(infoCharacter.charinfo) : ''}
-        />
         {infoCharacter && (
-          <div className="mb-4">
-            <InfoRow label={t('citizenId')} value={infoCharacter.citizenid} />
-            <InfoRow label={t('job')} value={infoCharacter.job?.label ?? t('unemployed')} />
-            <InfoRow
-              label={t('cash')}
-              value={`$${infoCharacter.money?.cash?.toLocaleString() ?? 0}`}
-            />
-            <InfoRow
-              label={t('bank')}
-              value={`$${infoCharacter.money?.bank?.toLocaleString() ?? 0}`}
-            />
-            {infoCharacter.last_played && (
-              <InfoRow label={t('lastPlayed')} value={infoCharacter.last_played} />
-            )}
-            <InfoRow
-              label={t('played')}
-              value={formatPlaytime(infoCharacter.playtime)}
-              showSeparator={false}
-            />
-          </div>
+          <CharacterInfoModal
+            character={infoCharacter}
+            onPlay={() => handlePlay(infoCharacter)}
+            onClose={handleBack}
+          />
         )}
-        <div className="ryn-modal-actions">
-          {infoCharacter && (
-            <Button size="lg" onClick={() => handlePlay(infoCharacter)}>
-              {t('play')}
-            </Button>
-          )}
-          <Button size="lg" variant="outline" onClick={handleBack}>
-            {t('close')}
-          </Button>
-        </div>
       </RynModal>
     </div>
   )

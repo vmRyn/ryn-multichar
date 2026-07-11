@@ -43,6 +43,55 @@ lib.callback.register('ryn-multichar:server:getPreviewData', function(source, ci
     return nil, nil
 end)
 
+--- Normalized appearance for spawning the local player (single table, model always set).
+lib.callback.register('ryn-multichar:server:getPlayerAppearance', function(source, citizenid)
+    if not citizenid or citizenid == '' then return nil end
+
+    local row
+    local ok = pcall(function()
+        row = MySQL.single.await(
+            'SELECT model, skin FROM playerskins WHERE citizenid = ? AND active = 1',
+            { citizenid }
+        )
+    end)
+
+    if ok and row then
+        local skin = row.skin
+        if type(skin) == 'string' and skin ~= '' then
+            local decodedOk, decoded = pcall(json.decode, skin)
+            skin = decodedOk and decoded or nil
+        end
+        if type(skin) ~= 'table' then
+            skin = {}
+        end
+        skin.model = skin.model or row.model or 'mp_m_freemode_01'
+        return skin
+    end
+
+    local adapter = Bridge.GetServer()
+    if adapter and adapter.GetPreviewData then
+        local clothing, model = adapter.GetPreviewData(source, citizenid)
+        if type(clothing) == 'string' then
+            local decodedOk, decoded = pcall(json.decode, clothing)
+            clothing = decodedOk and decoded or nil
+        end
+        if type(clothing) == 'table' then
+            if not clothing.model then
+                if type(model) == 'string' then
+                    clothing.model = model
+                elseif model == `mp_f_freemode_01` then
+                    clothing.model = 'mp_f_freemode_01'
+                else
+                    clothing.model = 'mp_m_freemode_01'
+                end
+            end
+            return clothing
+        end
+    end
+
+    return nil
+end)
+
 lib.callback.register('ryn-multichar:server:selectSpawn', function(source, data)
     return ServerSpawn.Select(source, data)
 end)
@@ -81,14 +130,21 @@ if Config.Relog.enabled and Config.Relog.permission ~= 'none' then
         help = 'Return to character selection',
         restricted = Config.Relog.permission == 'admin' and 'group.admin' or false,
     }, function(source)
-        Playtime.Flush(source)
+        if source == 0 then return end
+
+        -- Tell the client to ignore framework logout reopen events; we own the flow.
+        TriggerClientEvent('ryn-multichar:client:prepareRelog', source)
+        Wait(50)
+
+        pcall(Playtime.Flush, source)
 
         local adapter = Bridge.GetServer()
         if adapter and adapter.Logout then
             adapter.Logout(source)
-            Wait(500)
+            Wait(300)
         end
-        TriggerClientEvent('ryn-multichar:client:open', source)
+
+        TriggerClientEvent('ryn-multichar:client:relog', source)
     end)
 end
 

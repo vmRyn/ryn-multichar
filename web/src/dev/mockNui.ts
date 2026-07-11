@@ -93,6 +93,10 @@ export async function mockFetchNui<T = unknown>(event: string, data?: unknown): 
       console.log('[ryn-multichar dev] Spawn preview:', data)
       return 'ok' as T
 
+    case 'cancelSpawn':
+      dispatchOpen('characterSelect', { characters, slotLimit: demoSlotLimit })
+      return 'ok' as T
+
     case 'photoMode':
       console.log('[ryn-multichar dev] Photo mode:', data)
       return { success: true, active: !!(data as { enabled?: boolean }).enabled } as T

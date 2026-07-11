@@ -5,17 +5,21 @@ RegisterNUICallback('close', function(_, cb)
 end)
 
 RegisterNUICallback('getCharacters', function(_, cb)
+    -- Data only — do not respawn preview peds (that caused a dark flash + hid warmed slots).
     local characters, slotLimit = lib.callback.await('ryn-multichar:server:getCharacters', false)
-    Preview.SpawnAll(characters or {}, Preview.activeSlot or 1)
+    if characters then
+        Preview.characters = characters
+    end
     cb({ characters = characters, slotLimit = slotLimit })
 end)
 
 RegisterNUICallback('selectSlot', function(data, cb)
     cb('ok')
 
+    local slotIndex = tonumber(data and data.slotIndex) or 1
     CreateThread(function()
-        Photo.SetSlot(data.slotIndex)
-        Preview.SwitchSlot(data.slotIndex)
+        Photo.SetSlot(slotIndex)
+        Preview.SwitchSlot(slotIndex)
     end)
 end)
 
@@ -60,8 +64,10 @@ RegisterNUICallback('playCharacter', function(data, cb)
     Photo.Disable()
     local success = lib.callback.await('ryn-multichar:server:loadCharacter', false, data.citizenid)
     if success then
+        Spawn.citizenid = data.citizenid
         SetNuiFocus(true, true)
         local locations = Spawn.GetAvailableLocations(data.citizenid)
+        Spawn.EnterSelectMode(locations)
         SendNUIMessage({
             action = 'open',
             screen = 'spawnSelect',
@@ -75,6 +81,13 @@ RegisterNUICallback('playCharacter', function(data, cb)
         })
     end
     cb({ success = success })
+end)
+
+RegisterNUICallback('cancelSpawn', function(_, cb)
+    Spawn.selectMode = false
+    Spawn.citizenid = nil
+    Creation.ReturnToCharacterSelect(Preview.activeSlot or Spawn.activeSlot or 1)
+    cb('ok')
 end)
 
 RegisterNUICallback('deleteCharacter', function(data, cb)
@@ -115,6 +128,7 @@ RegisterNUICallback('createCharacter', function(data, cb)
     local character, err = lib.callback.await('ryn-multichar:server:createCharacter', false, data)
     if character then
         cb({ success = true, pending = true })
+        -- Run outside the NUI callback so appearance Wait loops don't stall the UI bridge.
         Creation.StartAppearance(character)
     elseif err then
         lib.notify({
@@ -130,9 +144,9 @@ end)
 
 RegisterNUICallback('selectSpawn', function(data, cb)
     local success = lib.callback.await('ryn-multichar:server:selectSpawn', false, data)
+    -- Teardown + appearance apply happen in spawnSelected / TeleportTo
     if success then
         SetNuiFocus(false, false)
-        TriggerEvent('ryn-multichar:client:close')
     end
     cb({ success = success })
 end)

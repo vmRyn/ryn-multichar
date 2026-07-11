@@ -29,7 +29,7 @@ local function ensureCam()
     if Camera.cam then return Camera.cam end
 
     Camera.cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-    RenderScriptCams(true, true, 500, true, true)
+    RenderScriptCams(true, false, 0, true, true)
     Camera.active = true
     return Camera.cam
 end
@@ -133,21 +133,20 @@ function Camera.AdjustOrbit(deltaYaw, deltaPitch, deltaZoom, deltaFov)
 end
 
 function Camera.Activate(slotIndex)
+    slotIndex = tonumber(slotIndex) or slotIndex
     local camConfig = Scene.GetSlotCamera(slotIndex)
     if not camConfig then return end
 
-    if Camera.cam then
-        DestroyCam(Camera.cam, false)
-    end
-
-    Camera.cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+    -- Reuse the existing cam so we never drop RenderScriptCams (that flash is black/dark).
+    ensureCam()
     SetCamCoord(Camera.cam, camConfig.pos.x, camConfig.pos.y, camConfig.pos.z)
     SetCamRot(Camera.cam, camConfig.rot.x, camConfig.rot.y, camConfig.rot.z, 2)
     SetCamFov(Camera.cam, camConfig.fof or camConfig.fov or 40.0)
-    RenderScriptCams(true, true, 500, true, true)
+    RenderScriptCams(true, false, 0, true, true)
 
     Camera.active = true
     Camera.focusSlot = slotIndex
+    Camera.transitioning = false
 end
 
 function Camera.Deactivate()
@@ -175,11 +174,14 @@ function Camera.TransitionTo(targetPos, targetRot, targetFov, duration)
         if targetFov then
             SetCamFov(Camera.cam, targetFov)
         end
+        RenderScriptCams(true, false, 0, true, true)
         return
     end
 
-    if Camera.transitioning then return end
+    -- Interrupt any in-flight transition so rapid slot switches stay responsive.
     Camera.transitioning = true
+    local transitionId = (Camera._transitionId or 0) + 1
+    Camera._transitionId = transitionId
 
     local fromPos = GetCamCoord(Camera.cam)
     local fromRot = GetCamRot(Camera.cam, 2)
@@ -190,7 +192,7 @@ function Camera.TransitionTo(targetPos, targetRot, targetFov, duration)
     local start = GetGameTimer()
 
     CreateThread(function()
-        while Camera.cam and not Camera.photoMode do
+        while Camera.cam and not Camera.photoMode and Camera._transitionId == transitionId do
             local elapsed = GetGameTimer() - start
             local progress = math.min(elapsed / duration, 1.0)
             local eased = easeOutCubic(progress)
@@ -214,11 +216,14 @@ function Camera.TransitionTo(targetPos, targetRot, targetFov, duration)
             Wait(0)
         end
 
-        Camera.transitioning = false
+        if Camera._transitionId == transitionId then
+            Camera.transitioning = false
+        end
     end)
 end
 
 function Camera.FocusSlot(slotIndex)
+    slotIndex = tonumber(slotIndex) or slotIndex
     Camera.focusSlot = slotIndex
     Camera.previewing = false
 
@@ -230,7 +235,16 @@ function Camera.FocusSlot(slotIndex)
     local camConfig = Scene.GetSlotCamera(slotIndex)
     if not camConfig then return end
 
-    if not Camera.cam or not Camera.active then
+    -- Interiors: snap instantly. Lerping between slot cams flies through walls (black flash).
+    local scene = Config.Scene
+    local interior = scene and (
+        scene.ipl
+        or scene.type == 'apartment'
+        or scene.type == 'interior'
+        or scene.type == 'studio'
+    )
+
+    if interior or not Camera.cam or not Camera.active then
         Camera.Activate(slotIndex)
         return
     end
@@ -242,15 +256,57 @@ function Camera.PreviewCoords(coords)
     if Camera.photoMode then return end
     if not coords then return end
 
+    local x = coords.x or coords[1]
+    local y = coords.y or coords[2]
+    local z = coords.z or coords[3]
+    local heading = coords.w or coords[4] or 0.0
+    if not x or not y or not z then return end
+
+    local preview = Config.SpawnPreview or {}
+    local height = preview.height or 55.0
+    local pullback = preview.pullback or 32.0
+    local fov = preview.fov or 42.0
+    local pitch = preview.pitch or -52.0
+    local duration = preview.transitionMs or 700
+
     Camera.previewing = true
-    local heading = math.rad(coords.w or 0.0)
+    SetFocusPosAndVel(x, y, z, 0.0, 0.0, 0.0)
+    RequestCollisionAtCoord(x, y, z)
+
+    -- Angled bird's-eye: high and behind the spawn, looking down at it.
+    local headingRad = math.rad(heading)
     local previewPos = vector3(
-        coords.x + math.sin(heading) * -18.0,
-        coords.y + math.cos(heading) * 18.0,
-        coords.z + 12.0
+        x - math.sin(headingRad) * pullback,
+        y - math.cos(headingRad) * pullback,
+        z + height
     )
-    local previewRot = vector3(-12.0, 0.0, (coords.w or 0.0))
-    Camera.TransitionTo(previewPos, previewRot, 48.0, 900)
+    local previewRot = vector3(pitch, 0.0, heading)
+
+    if not Camera.cam or not Camera.active then
+        ensureCam()
+        SetCamCoord(Camera.cam, previewPos.x, previewPos.y, previewPos.z)
+        SetCamRot(Camera.cam, previewRot.x, previewRot.y, previewRot.z, 2)
+        SetCamFov(Camera.cam, fov)
+        PointCamAtCoord(Camera.cam, x, y, z + 0.8)
+        RenderScriptCams(true, false, 0, true, true)
+        Camera.active = true
+        return
+    end
+
+    Camera.TransitionTo(previewPos, previewRot, fov, duration)
+
+    -- Keep the look-at locked on the spawn during/after the move.
+    local transitionId = Camera._transitionId
+    CreateThread(function()
+        local endAt = GetGameTimer() + (duration or 350) + 50
+        while Camera.cam and Camera._transitionId == transitionId and GetGameTimer() < endAt do
+            PointCamAtCoord(Camera.cam, x, y, z + 0.8)
+            Wait(0)
+        end
+        if Camera.cam and Camera._transitionId == transitionId then
+            PointCamAtCoord(Camera.cam, x, y, z + 0.8)
+        end
+    end)
 end
 
 function Camera.ResetPreview(slotIndex)

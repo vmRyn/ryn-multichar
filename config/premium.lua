@@ -39,6 +39,22 @@ Config.ScenePoses = {
                 flag = 1,
             },
         },
+        crossed_arms = {
+            label = 'Crossed Arms',
+            anim = {
+                dict = 'amb@world_human_hang_out_street@female_arms_crossed@idle_a',
+                name = 'idle_a',
+                flag = 1,
+            },
+        },
+        lean_wall = {
+            label = 'Lean Wall',
+            anim = {
+                dict = 'amb@world_human_leaning@male@wall@back@foot_up@idle_a',
+                name = 'idle_a',
+                flag = 1,
+            },
+        },
         lean_phone = {
             label = 'Lean & Phone',
             anim = {
@@ -49,6 +65,70 @@ Config.ScenePoses = {
             props = {
                 {
                     model = 'prop_phone_ing',
+                    bone = 28422,
+                    offset = vector3(0.0, 0.0, 0.0),
+                    rot = vector3(0.0, 0.0, 0.0),
+                },
+            },
+        },
+        smoking = {
+            label = 'Smoking',
+            anim = {
+                dict = 'amb@world_human_aa_smoke@male@idle_a',
+                name = 'idle_c',
+                flag = 49,
+            },
+            props = {
+                {
+                    model = 'prop_cs_ciggy_01',
+                    bone = 28422,
+                    offset = vector3(0.0, 0.0, 0.0),
+                    rot = vector3(0.0, 0.0, 0.0),
+                },
+            },
+        },
+        bong = {
+            label = 'Hitting the Bong',
+            anim = {
+                dict = 'anim@safehouse@bong',
+                name = 'bong_stage3',
+                flag = 1,
+            },
+            props = {
+                {
+                    model = 'hei_heist_sh_bong_01',
+                    bone = 18905,
+                    offset = vector3(0.10, -0.25, 0.0),
+                    rot = vector3(95.0, 190.0, 180.0),
+                },
+            },
+        },
+        coffee = {
+            label = 'Coffee',
+            anim = {
+                dict = 'amb@world_human_drinking@coffee@male@idle_a',
+                name = 'idle_c',
+                flag = 49,
+            },
+            props = {
+                {
+                    model = 'p_amb_coffeecup_01',
+                    bone = 28422,
+                    offset = vector3(0.0, 0.0, 0.0),
+                    rot = vector3(0.0, 0.0, 0.0),
+                },
+            },
+        },
+        beer = {
+            label = 'Beer',
+            anim = {
+                dict = 'amb@world_human_drinking@beer@male@idle_a',
+                name = 'idle_c',
+                flag = 49,
+            },
+            props = {
+                {
+                    model = 'prop_amb_beer_bottle',
                     bone = 28422,
                     offset = vector3(0.0, 0.0, 0.0),
                     rot = vector3(0.0, 0.0, 0.0),
@@ -71,27 +151,19 @@ Config.ScenePoses = {
                 },
             },
         },
-        sports_car = {
-            label = 'Sports Car',
-            vehicle = {
-                model = 'sultanrs',
-                offset = vector4(0.0, 1.8, -0.95, 90.0),
-            },
+        sit_ground = {
+            label = 'Sit Ground',
             anim = {
-                dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
-                name = 'idle_a',
+                dict = 'anim@heists@fleeca_bank@ig_7_jetski_owner',
+                name = 'owner_idle',
                 flag = 1,
             },
         },
-        muscle_car = {
-            label = 'Muscle Car',
-            vehicle = {
-                model = 'dominator',
-                offset = vector4(0.0, 1.6, -0.95, 90.0),
-            },
+        kneel = {
+            label = 'Kneel',
             anim = {
-                dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
-                name = 'idle_a',
+                dict = 'amb@medic@standing@kneel@base',
+                name = 'base',
                 flag = 1,
             },
         },

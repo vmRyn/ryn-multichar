@@ -7,17 +7,22 @@ export function getCharacterForSlot(characters: Character[], slotIndex: number):
 }
 
 export function getLastPlayedCitizenId(characters: Character[]): string | null {
+  return getLastPlayedCharacter(characters)?.citizenid ?? null
+}
+
+export function getLastPlayedCharacter(characters: Character[]): Character | null {
   let latest: Character | null = null
   let latestTime = 0
 
   for (const character of characters) {
     if (!character.last_played) continue
-    const time = Date.parse(character.last_played)
+    const raw = character.last_played
+    const time = typeof raw === 'number' ? raw : Date.parse(raw) || Number(raw) || 0
     if (!Number.isNaN(time) && time >= latestTime) {
       latestTime = time
       latest = character
     }
   }
 
-  return latest?.citizenid ?? null
+  return latest
 }

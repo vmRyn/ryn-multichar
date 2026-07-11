@@ -1,28 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SpawnLocation } from '@/types'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { fetchNui } from '@/hooks/useNui'
 import {
-  ChevronRightIcon,
   HistoryIcon,
   HomeIcon,
   MapPinIcon,
-  SearchIcon,
   ShieldIcon,
 } from 'lucide-react'
-import { ScreenPanel } from './ScreenPanel'
-import { PanelHeader } from './PanelHeader'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
+import { playUiSound } from '@/lib/sounds'
+import { animateSpawnChoiceSelect, animateSpawnEntrance } from '@/lib/animations'
 
 interface SpawnSelectorProps {
   locations: SpawnLocation[]
-  onSelect: (locationId: string) => void
+  onConfirm: (locationId: string) => void
   onCancel: () => void
 }
 
-type SpawnCategory = 'last' | 'housing' | 'public'
+type SpawnCategory = 'housing' | 'public'
 
 const iconMap: Record<string, React.ReactNode> = {
   'map-pin': <MapPinIcon className="size-4" strokeWidth={2} />,
@@ -32,29 +29,33 @@ const iconMap: Record<string, React.ReactNode> = {
   building: <HomeIcon className="size-4" strokeWidth={2} />,
 }
 
-function getSpawnCategory(location: SpawnLocation): SpawnCategory {
-  if (location.id === 'lastLocation') return 'last'
+function getCategory(location: SpawnLocation): SpawnCategory | 'skip' {
+  if (location.id === 'lastLocation') return 'skip'
   if (location.id.startsWith('housing:')) return 'housing'
   return 'public'
 }
 
-const categoryOrder: SpawnCategory[] = ['last', 'housing', 'public']
+const categoryOrder: SpawnCategory[] = ['housing', 'public']
 
-export function SpawnSelector({ locations, onSelect, onCancel }: SpawnSelectorProps) {
+export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorProps) {
   const { t } = useLocale()
-  const [query, setQuery] = useState('')
-  const [highlightIndex, setHighlightIndex] = useState(0)
-  const listRef = useRef<HTMLDivElement>(null)
-  const itemRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const rootRef = useRef<HTMLDivElement>(null)
+  const choiceRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
 
-  const filteredGroups = useMemo(() => {
-    const normalized = query.trim().toLowerCase()
-    const filtered = normalized
-      ? locations.filter((loc) => loc.label.toLowerCase().includes(normalized))
-      : locations
+  const choices = useMemo(
+    () => locations.filter((loc) => getCategory(loc) !== 'skip'),
+    [locations],
+  )
 
+  const [selectedId, setSelectedId] = useState<string | null>(choices[0]?.id ?? null)
+
+  const selected = useMemo(
+    () => choices.find((loc) => loc.id === selectedId) ?? null,
+    [choices, selectedId],
+  )
+
+  const groups = useMemo(() => {
     const labels: Record<SpawnCategory, string> = {
-      last: t('spawnGroupLast'),
       housing: t('spawnGroupHousing'),
       public: t('spawnGroupPublic'),
     }
@@ -63,137 +64,151 @@ export function SpawnSelector({ locations, onSelect, onCancel }: SpawnSelectorPr
       .map((category) => ({
         category,
         label: labels[category],
-        items: filtered.filter((loc) => getSpawnCategory(loc) === category),
+        items: choices.filter((loc) => getCategory(loc) === category),
       }))
       .filter((group) => group.items.length > 0)
-  }, [locations, query, t])
-
-  const flatItems = useMemo(
-    () => filteredGroups.flatMap((group) => group.items),
-    [filteredGroups],
-  )
+  }, [choices, t])
 
   useEffect(() => {
-    setHighlightIndex(0)
-    itemRefs.current = []
-  }, [query, locations])
-
-  useEffect(() => {
-    if (highlightIndex >= flatItems.length) {
-      setHighlightIndex(Math.max(0, flatItems.length - 1))
+    if (!selectedId && choices[0]) setSelectedId(choices[0].id)
+    if (selectedId && !choices.some((loc) => loc.id === selectedId)) {
+      setSelectedId(choices[0]?.id ?? null)
     }
-  }, [flatItems.length, highlightIndex])
+  }, [choices, selectedId])
 
   useEffect(() => {
-    const highlighted = itemRefs.current[highlightIndex]
-    highlighted?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [highlightIndex])
+    if (!rootRef.current) return
+    const frame = requestAnimationFrame(() => {
+      if (rootRef.current) animateSpawnEntrance(rootRef.current)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [])
 
   useEffect(() => {
-    const item = flatItems[highlightIndex]
-    if (!item?.coords) return
-
+    if (!selected?.coords) return
     const timer = window.setTimeout(() => {
-      fetchNui('previewSpawn', { coords: item.coords }).catch(() => {})
-    }, 220)
-
+      fetchNui('previewSpawn', { coords: selected.coords }).catch(() => {})
+    }, 0)
     return () => window.clearTimeout(timer)
-  }, [flatItems, highlightIndex])
+  }, [selected])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (flatItems.length === 0) return
+      if (choices.length === 0) return
+      const index = Math.max(0, choices.findIndex((loc) => loc.id === selectedId))
 
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setHighlightIndex((i) => (i + 1) % flatItems.length)
+        const next = choices[(index + 1) % choices.length]
+        setSelectedId(next.id)
+        playUiSound('slotSelect')
+        const el = choiceRefs.current.get(next.id)
+        if (el) animateSpawnChoiceSelect(el)
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setHighlightIndex((i) => (i - 1 + flatItems.length) % flatItems.length)
-      } else if (e.key === 'Enter') {
-        const item = flatItems[highlightIndex]
-        if (item) {
-          e.preventDefault()
-          onSelect(item.id)
-        }
+        const prev = choices[(index - 1 + choices.length) % choices.length]
+        setSelectedId(prev.id)
+        playUiSound('slotSelect')
+        const el = choiceRefs.current.get(prev.id)
+        if (el) animateSpawnChoiceSelect(el)
+      } else if (e.key === 'Enter' && selectedId) {
+        e.preventDefault()
+        onConfirm(selectedId)
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        onCancel()
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [flatItems, highlightIndex, onSelect])
+  }, [choices, selectedId, onConfirm, onCancel])
 
-  let flatIndex = 0
+  const selectLocation = (id: string) => {
+    setSelectedId(id)
+    playUiSound('slotSelect')
+    const el = choiceRefs.current.get(id)
+    if (el) animateSpawnChoiceSelect(el)
+  }
 
   return (
-    <ScreenPanel animationKey="spawn" maxWidth="lg" bodyClassName="flex max-h-[80vh] flex-col" onBackdropClick={onCancel}>
-      <PanelHeader
-        eyebrow={t('spawn')}
-        title={t('chooseLocation')}
-        subtitle={t('spawnCount', { count: flatItems.length })}
-        className="mb-4 shrink-0"
-      />
+    <div ref={rootRef} className="ryn-spawn-screen" data-animate="spawn-panel">
+      <header className="ryn-spawn-title" data-animate="spawn-title">
+        <span className="ryn-spawn-title__spawn">{t('spawnTitleSpawn')}</span>
+        <span className="ryn-spawn-title__selector">{t('spawnTitleSelector')}</span>
+      </header>
 
-      <div className="ryn-search shrink-0">
-        <SearchIcon className="ryn-search__icon" aria-hidden />
-        <Input
-          className="ryn-search__input"
-          placeholder={t('searchSpawns')}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
+      <aside className="ryn-spawn-rail" data-animate="spawn-rail">
+        <div className="ryn-spawn-rail__heading">
+          <span className="ryn-spawn-rail__icon" aria-hidden>
+            <MapPinIcon className="size-3.5" strokeWidth={2.25} />
+          </span>
+          <div>
+            <p className="ryn-spawn-rail__title">{t('chooseLocation')}</p>
+            <p className="ryn-spawn-rail__hint-top">{t('spawnSubtitle')}</p>
+          </div>
+        </div>
 
-      <div ref={listRef} className="ryn-spawn-list mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
-        {filteredGroups.length === 0 ? (
-          <p className="ryn-spawn-empty">{t('noSpawnResults')}</p>
-        ) : (
-          filteredGroups.map((group) => (
-            <div key={group.category} className="ryn-spawn-group">
-              <p className="ryn-group-label">{group.label}</p>
-              <div className="flex flex-col gap-1">
+        <div className="ryn-spawn-rail__list">
+          {groups.length === 0 ? (
+            <p className="ryn-spawn-empty">{t('noSpawnResults')}</p>
+          ) : (
+            groups.map((group) => (
+              <div key={group.category} className="ryn-spawn-rail__group">
+                <p className="ryn-spawn-rail__label">{group.label}</p>
                 {group.items.map((loc) => {
-                  const index = flatIndex
-                  flatIndex += 1
-                  const isHighlighted = index === highlightIndex
-                  const isFeatured = loc.id === 'lastLocation'
-
+                  const active = loc.id === selectedId
                   return (
                     <button
                       key={loc.id}
                       ref={(el) => {
-                        itemRefs.current[index] = el
+                        if (el) choiceRefs.current.set(loc.id, el)
+                        else choiceRefs.current.delete(loc.id)
                       }}
                       type="button"
-                      className={cn(
-                        'ryn-spawn-item',
-                        isFeatured && 'ryn-spawn-item--featured',
-                        isHighlighted && 'ryn-spawn-item--active',
-                      )}
-                      onMouseEnter={() => setHighlightIndex(index)}
-                      onFocus={() => setHighlightIndex(index)}
-                      onClick={() => onSelect(loc.id)}
+                      data-animate="spawn-choice"
+                      className={cn('ryn-spawn-choice', active && 'ryn-spawn-choice--active')}
+                      onClick={() => selectLocation(loc.id)}
+                      aria-pressed={active}
                     >
-                      <span className="ryn-spawn-icon">
+                      <span className="ryn-spawn-choice__icon">
                         {iconMap[loc.icon] ?? <MapPinIcon className="size-4" strokeWidth={2} />}
                       </span>
-                      <span className="min-w-0 flex-1 truncate">{loc.label}</span>
-                      <ChevronRightIcon className="ryn-spawn-chevron" aria-hidden />
+                      <span className="ryn-spawn-choice__text">
+                        <span className="ryn-spawn-choice__title">{loc.label}</span>
+                        {loc.description && (
+                          <span className="ryn-spawn-choice__meta">{loc.description}</span>
+                        )}
+                      </span>
                     </button>
                   )
                 })}
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
 
-      <div className="ryn-screen-footer mt-4 shrink-0">
-        <p className="ryn-spawn-hint">{t('spawnKeyboardHint')}</p>
-        <Button className="shrink-0 uppercase" variant="outline" size="lg" type="button" onClick={onCancel}>
-          {t('back')}
-        </Button>
-      </div>
-    </ScreenPanel>
+        <div className="ryn-spawn-rail__actions" data-animate="spawn-actions">
+          <button
+            type="button"
+            className="ryn-spawn-here"
+            disabled={!selectedId}
+            onClick={() => selectedId && onConfirm(selectedId)}
+          >
+            {t('spawnHere')}
+          </button>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="ryn-spawn-back"
+            onClick={onCancel}
+          >
+            {t('back')}
+          </Button>
+          <p className="ryn-spawn-rail__hint">{t('spawnKeyboardHint')}</p>
+        </div>
+      </aside>
+    </div>
   )
 }

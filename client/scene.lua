@@ -190,13 +190,11 @@ function Scene.Load()
     SetFollowPedCamViewMode(0)
 
     if scene.lighting then
-        SetArtificialLightsState(true)
+        -- Native is inverted: true = blackout (artificial lights OFF). We want lights ON.
+        SetArtificialLightsState(false)
     end
 
-    if IsScreenFadedOut() then
-        DoScreenFadeIn(500)
-    end
-
+    -- Keep the screen faded until the script camera is active (avoids a black/empty flash).
     Scene.loaded = true
     Scene.StartSyncLoop()
     Utils.Debug('Scene loaded:', scene.type)
@@ -206,24 +204,33 @@ function Scene.Unload()
     Scene.StopSyncLoop()
 
     local ped = cache.ped
-    ResetEntityAlpha(ped)
-    SetLocalPlayerVisibleLocally(true)
-    SetEntityVisible(ped, true, false)
-    FreezeEntityPosition(ped, false)
-    SetEntityCollision(ped, true, true)
-
-    if Config.Scene.lighting then
-        SetArtificialLightsState(false)
+    if ped and DoesEntityExist(ped) then
+        ResetEntityAlpha(ped)
+        SetLocalPlayerVisibleLocally(true)
+        SetEntityVisible(ped, true, false)
+        FreezeEntityPosition(ped, false)
+        SetEntityCollision(ped, true, true)
     end
 
+    SetArtificialLightsState(false)
+
     ClearFocus()
-    NetworkEndTutorialSession()
+
+    if NetworkIsInTutorialSession() then
+        NetworkEndTutorialSession()
+        local deadline = GetGameTimer() + 5000
+        while NetworkIsInTutorialSession() and GetGameTimer() < deadline do
+            Wait(0)
+        end
+    end
+
     Scene.loaded = false
 end
 
 function Scene.RequestSlotCollision(slotIndex)
     if not Scene.loaded then return end
 
+    slotIndex = tonumber(slotIndex) or slotIndex
     local scene = Config.Scene
     local slot = scene.slots[slotIndex]
     if not slot then return end
@@ -246,11 +253,13 @@ function Scene.EnsureStreamed(slotIndex)
 end
 
 function Scene.GetSlotCoords(slotIndex)
+    slotIndex = tonumber(slotIndex) or slotIndex
     local slot = Config.Scene.slots[slotIndex]
     return slot and slot.ped or nil
 end
 
 function Scene.GetSlotCamera(slotIndex)
+    slotIndex = tonumber(slotIndex) or slotIndex
     local slot = Config.Scene.slots[slotIndex]
     return slot and slot.camera or nil
 end

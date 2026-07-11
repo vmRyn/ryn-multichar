@@ -30,31 +30,31 @@ Config.ScenePresets = {
             [2] = {
                 ped = vector4(-788.65, 315.79, 217.64, 90.0),
                 camera = {
-                    pos = vector3(-786.0, 315.79, 218.35),
-                    rot = vector3(-4.0, 0.0, 270.0),
-                    fov = 44.0,
+                    pos = vector3(-784.85, 315.79, 218.45),
+                    rot = vector3(-5.0, 0.0, 270.0),
+                    fov = 42.0,
                 },
                 idleAnim = {
-                    dict = 'amb@world_human_leaning@male@wall@back@mobile@base',
-                    name = 'base',
+                    dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
+                    name = 'idle_a',
                 },
             },
             [3] = {
                 ped = vector4(-787.3, 318.15, 217.64, 180.0),
                 camera = {
-                    pos = vector3(-787.3, 320.0, 218.35),
-                    rot = vector3(-4.0, 0.0, 180.0),
-                    fov = 44.0,
+                    pos = vector3(-787.3, 321.35, 218.45),
+                    rot = vector3(-5.0, 0.0, 180.0),
+                    fov = 42.0,
                 },
                 idleAnim = {
-                    dict = 'anim@amb@casino@hangout@ped_female@stand@02a@idles',
+                    dict = 'anim@amb@casino@hangout@ped_male@stand@02b@idles',
                     name = 'idle_a',
                 },
             },
         },
         lighting = true,
         weather = 'CLEAR',
-        time = { hour = 21, minute = 0 },
+        time = { hour = 14, minute = 0 },
     },
 
     studio = {

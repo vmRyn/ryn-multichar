@@ -8,6 +8,7 @@ interface RynModalProps {
   children: ReactNode
   animationKey?: string
   maxWidth?: string
+  tone?: 'default' | 'danger'
 }
 
 export function RynModal({
@@ -16,11 +17,12 @@ export function RynModal({
   children,
   animationKey,
   maxWidth = 'max-w-md',
+  tone = 'default',
 }: RynModalProps) {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center px-6 pt-[8vh] pb-[min(40vh,360px)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <button
         type="button"
         className="ryn-modal-backdrop absolute inset-0"
@@ -28,7 +30,7 @@ export function RynModal({
         aria-label="Close"
       />
       <AnimatedPanel className={cn('relative w-full', maxWidth)} animationKey={animationKey ?? 'modal'}>
-        <div className="ryn-panel">{children}</div>
+        <div className={cn('ryn-panel', tone === 'danger' && 'ryn-panel--danger')}>{children}</div>
       </AnimatedPanel>
     </div>
   )
