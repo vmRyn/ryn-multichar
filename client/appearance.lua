@@ -99,13 +99,8 @@ function Appearance.FetchPlayerAppearance(citizenid)
         return appearance
     end
 
-    -- Fallback to framework preview helpers.
-    local clothing, model
-    if Bridge.name == 'qbox' then
-        clothing, model = lib.callback.await('qbx_core:server:getPreviewPedData', false, citizenid)
-    else
-        clothing, model = lib.callback.await('ryn-multichar:server:getPreviewData', false, citizenid)
-    end
+    -- Fallback through the active framework adapter (QB / ESX / QBox).
+    local clothing, model = lib.callback.await('ryn-multichar:server:getPreviewData', false, citizenid)
 
     if type(clothing) == 'string' then
         local ok, decoded = pcall(json.decode, clothing)
@@ -150,16 +145,27 @@ end
 
 local function resolveFallbackModel()
     local gender
-    if Bridge.name == 'qbox' then
-        local playerData = exports.qbx_core:GetPlayerData()
-        gender = playerData and playerData.charinfo and playerData.charinfo.gender
-    elseif Bridge.name == 'qb' then
-        local adapter = Bridge.GetClient()
-        local playerData = adapter and adapter.GetPlayerData and adapter.GetPlayerData()
-        gender = playerData and playerData.charinfo and playerData.charinfo.gender
+    local adapter = Bridge.GetClient()
+    local playerData = adapter and adapter.GetPlayerData and adapter.GetPlayerData()
+
+    if Bridge.name == 'qbox' and (not playerData or not playerData.charinfo) then
+        local ok, data = pcall(function()
+            return exports.qbx_core:GetPlayerData()
+        end)
+        if ok then playerData = data end
     end
 
-    if gender == 1 or gender == 'female' then
+    if playerData then
+        if playerData.charinfo and playerData.charinfo.gender ~= nil then
+            gender = playerData.charinfo.gender
+        elseif playerData.sex ~= nil then
+            gender = playerData.sex
+        elseif playerData.gender ~= nil then
+            gender = playerData.gender
+        end
+    end
+
+    if gender == 1 or gender == 'female' or gender == 'f' then
         return 'mp_f_freemode_01'
     end
 

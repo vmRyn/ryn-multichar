@@ -31,10 +31,6 @@ lib.callback.register('ryn-multichar:server:getSpawnLocations', function(source,
 end)
 
 lib.callback.register('ryn-multichar:server:getPreviewData', function(source, citizenid)
-    if Bridge.name == 'qbox' then
-        return lib.callback.await('qbx_core:server:getPreviewPedData', source, citizenid)
-    end
-
     local adapter = Bridge.GetServer()
     if adapter and adapter.GetPreviewData then
         return adapter.GetPreviewData(source, citizenid)

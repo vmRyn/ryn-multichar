@@ -17,18 +17,25 @@ local function decodeJson(value, fallback)
     return ok and decoded or fallback
 end
 
-local function normalizeLicense(source)
+local function tableExists(name)
+    local ok, row = pcall(function()
+        return MySQL.single.await(
+            'SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1',
+            { name }
+        )
+    end)
+    return ok and row ~= nil
+end
+
+function adapter.GetIdentifier(source)
     return GetPlayerIdentifierByType(source, 'license2')
         or GetPlayerIdentifierByType(source, 'license')
 end
 
-function adapter.GetIdentifier(source)
-    return normalizeLicense(source)
-end
-
 function adapter.GetCharacters(source)
     local license = adapter.GetIdentifier(source)
-    local slotLimit = Slots.GetLimit(license)
+    if not license then return {} end
+
     local rows = MySQL.query.await(
         'SELECT citizenid, cid, charinfo, money, job FROM players WHERE license = ? ORDER BY cid ASC',
         { license }
@@ -45,7 +52,7 @@ function adapter.GetCharacters(source)
         }
     end
 
-    return characters, slotLimit
+    return characters
 end
 
 function adapter.CreateCharacter(source, data)
@@ -96,8 +103,21 @@ function adapter.LoadCharacter(source, citizenid)
 end
 
 function adapter.DeleteCharacter(source, citizenid)
-    getQBCore().Player.DeleteCharacter(source, citizenid)
-    return true
+    local deleted = false
+
+    local ok = pcall(function()
+        getQBCore().Player.DeleteCharacter(source, citizenid)
+        deleted = true
+    end)
+
+    if ok and deleted then
+        -- Confirm row is gone; some QB builds don't return a status.
+        local stillThere = MySQL.scalar.await('SELECT 1 FROM players WHERE citizenid = ?', { citizenid })
+        if not stillThere then return true end
+    end
+
+    local result = MySQL.update.await('DELETE FROM players WHERE citizenid = ?', { citizenid })
+    return (result or 0) > 0
 end
 
 function adapter.GetLastLocation(_source, citizenid)
@@ -111,6 +131,34 @@ function adapter.GetLastLocation(_source, citizenid)
 end
 
 function adapter.GetPreviewData(_source, citizenid)
+    -- illenium / modern QB: playerskins
+    if tableExists('playerskins') then
+        local skinRow = MySQL.single.await(
+            'SELECT model, skin FROM playerskins WHERE citizenid = ? AND active = 1',
+            { citizenid }
+        )
+
+        if skinRow and skinRow.skin then
+            local skin = decodeJson(skinRow.skin, nil)
+            if skin then
+                return skin, skinRow.model and joaat(skinRow.model) or nil
+            end
+        end
+    end
+
+    -- metadata.skin (some QB forks)
+    local metaRow = MySQL.single.await(
+        'SELECT metadata FROM players WHERE citizenid = ?',
+        { citizenid }
+    )
+    if metaRow and metaRow.metadata then
+        local metadata = decodeJson(metaRow.metadata, {})
+        if metadata and metadata.skin then
+            return metadata.skin, metadata.model
+        end
+    end
+
+    -- Legacy players.skin column
     local row = MySQL.single.await('SELECT skin FROM players WHERE citizenid = ?', { citizenid })
     if not row or not row.skin then return nil, nil end
 
@@ -121,10 +169,28 @@ end
 function adapter.GiveStarterItems(source)
     if not Config.StarterItems.enabled then return end
 
+    local player = getQBCore().Functions.GetPlayer(source)
+
     for _, item in ipairs(Config.StarterItems.items) do
-        pcall(function()
-            exports.ox_inventory:AddItem(source, item.name, item.amount)
-        end)
+        local given = false
+
+        if GetResourceState('ox_inventory') == 'started' then
+            given = pcall(function()
+                exports.ox_inventory:AddItem(source, item.name, item.amount)
+            end)
+        end
+
+        if not given and GetResourceState('qb-inventory') == 'started' then
+            given = pcall(function()
+                exports['qb-inventory']:AddItem(source, item.name, item.amount)
+            end)
+        end
+
+        if not given and player and player.Functions and player.Functions.AddItem then
+            pcall(function()
+                player.Functions.AddItem(item.name, item.amount)
+            end)
+        end
     end
 end
 

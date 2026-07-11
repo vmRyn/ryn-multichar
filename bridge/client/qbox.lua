@@ -2,10 +2,19 @@ local adapter = {}
 local playerLoaded = false
 local playerData = nil
 
+local function refreshPlayerData()
+    local ok, data = pcall(function()
+        return exports.qbx_core:GetPlayerData()
+    end)
+    if ok and data then
+        playerData = data
+    end
+end
+
 function adapter.OnPlayerLoaded(cb)
     RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
         playerLoaded = true
-        playerData = exports.qbx_core:GetPlayerData()
+        refreshPlayerData()
         cb()
     end)
 
@@ -22,7 +31,7 @@ end
 
 function adapter.GetPlayerData()
     if playerLoaded then
-        playerData = exports.qbx_core:GetPlayerData()
+        refreshPlayerData()
     end
     return playerData
 end

@@ -17,21 +17,32 @@ local function decodeJson(value, fallback)
     return ok and decoded or fallback
 end
 
+local function tableExists(name)
+    local ok, row = pcall(function()
+        return MySQL.single.await(
+            'SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? LIMIT 1',
+            { name }
+        )
+    end)
+    return ok and row ~= nil
+end
+
 local function getLicenseHash(source)
-    local identifier = GetPlayerIdentifierByType(source, 'license')
+    local identifier = GetPlayerIdentifierByType(source, 'license2')
+        or GetPlayerIdentifierByType(source, 'license')
     if not identifier then return nil end
-    return identifier:gsub('license:', '')
+    return identifier:gsub('license2:', ''):gsub('license:', '')
 end
 
 function adapter.GetIdentifier(source)
-    return GetPlayerIdentifierByType(source, 'license')
+    return GetPlayerIdentifierByType(source, 'license2')
+        or GetPlayerIdentifierByType(source, 'license')
 end
 
 function adapter.GetCharacters(source)
     local licenseHash = getLicenseHash(source)
-    if not licenseHash then return {}, Config.Slots.default end
+    if not licenseHash then return {} end
 
-    local slotLimit = Slots.GetLimit(adapter.GetIdentifier(source))
     local rows = MySQL.query.await(
         "SELECT * FROM users WHERE identifier LIKE ? ORDER BY identifier ASC",
         { 'char%:' .. licenseHash }
@@ -42,6 +53,9 @@ function adapter.GetCharacters(source)
         local slot = tonumber(row.identifier:match('char(%d+):')) or #characters + 1
         local accounts = decodeJson(row.accounts, {})
         local job = decodeJson(row.job, {})
+        if type(job) ~= 'table' then
+            job = { name = row.job, label = row.job or 'Unemployed', grade = row.job_grade or 0 }
+        end
 
         characters[#characters + 1] = {
             citizenid = row.identifier,
@@ -49,8 +63,9 @@ function adapter.GetCharacters(source)
             charinfo = {
                 firstname = row.firstname,
                 lastname = row.lastname,
-                gender = row.sex == 'f' and 1 or 0,
+                gender = (row.sex == 'f' or row.sex == 'female') and 1 or 0,
                 birthdate = row.dateofbirth,
+                nationality = row.nationality,
             },
             money = {
                 cash = accounts.money or 0,
@@ -58,12 +73,14 @@ function adapter.GetCharacters(source)
             },
             job = {
                 label = job.label or 'Unemployed',
-                grade = { name = job.grade_label or job.grade_name or '' },
+                grade = {
+                    name = job.grade_label or job.grade_name or tostring(job.grade or row.job_grade or ''),
+                },
             },
         }
     end
 
-    return characters, slotLimit
+    return characters
 end
 
 function adapter.CreateCharacter(source, data)
@@ -149,7 +166,16 @@ function adapter.CreateCharacter(source, data)
         end
     end
 
-    return { citizenid = identifier, cid = slot, charinfo = { firstname = data.firstname, lastname = data.lastname } }, nil
+    return {
+        citizenid = identifier,
+        cid = slot,
+        charinfo = {
+            firstname = data.firstname,
+            lastname = data.lastname,
+            gender = sex == 'f' and 1 or 0,
+            birthdate = data.birthdate,
+        },
+    }, nil
 end
 
 function adapter.LoadCharacter(source, citizenid)
@@ -170,8 +196,8 @@ function adapter.DeleteCharacter(source, citizenid)
         Wait(250)
     end
 
-    MySQL.query.await('DELETE FROM users WHERE identifier = ?', { citizenid })
-    return true
+    local result = MySQL.update.await('DELETE FROM users WHERE identifier = ?', { citizenid })
+    return (result or 0) > 0
 end
 
 function adapter.GetLastLocation(_source, citizenid)
@@ -185,11 +211,35 @@ function adapter.GetLastLocation(_source, citizenid)
 end
 
 function adapter.GetPreviewData(_source, citizenid)
-    local row = MySQL.single.await('SELECT skin FROM users WHERE identifier = ?', { citizenid })
-    if not row or not row.skin then return nil, nil end
+    -- illenium on ESX often still uses playerskins keyed by identifier/citizenid
+    if tableExists('playerskins') then
+        local skinRow = MySQL.single.await(
+            'SELECT model, skin FROM playerskins WHERE citizenid = ? AND active = 1',
+            { citizenid }
+        )
+
+        if skinRow and skinRow.skin then
+            local skin = decodeJson(skinRow.skin, nil)
+            if skin then
+                return skin, skinRow.model and joaat(skinRow.model) or nil
+            end
+        end
+    end
+
+    local row = MySQL.single.await('SELECT skin, sex FROM users WHERE identifier = ?', { citizenid })
+    if not row then return nil, nil end
 
     local skin = decodeJson(row.skin, nil)
-    return skin, skin and skin.model or nil
+    if not skin then
+        local model = (row.sex == 'f' or row.sex == 'female') and 'mp_f_freemode_01' or 'mp_m_freemode_01'
+        return { model = model }, joaat(model)
+    end
+
+    if not skin.model then
+        skin.model = (row.sex == 'f' or row.sex == 'female') and 'mp_f_freemode_01' or 'mp_m_freemode_01'
+    end
+
+    return skin, skin.model
 end
 
 function adapter.GiveStarterItems(source)
@@ -204,7 +254,9 @@ function adapter.GiveStarterItems(source)
                 exports.ox_inventory:AddItem(source, item.name, item.amount)
             end)
         else
-            xPlayer.addInventoryItem(item.name, item.amount)
+            pcall(function()
+                xPlayer.addInventoryItem(item.name, item.amount)
+            end)
         end
     end
 end
@@ -213,8 +265,15 @@ function adapter.Logout(source)
     local xPlayer = getESX().GetPlayerFromId(source)
     if not xPlayer then return end
 
-    TriggerEvent('esx:playerLogout', source)
-    Wait(250)
+    -- Prefer modern ESX logout export when available.
+    local ok = pcall(function()
+        getESX().Logout(source)
+    end)
+
+    if not ok then
+        TriggerEvent('esx:playerLogout', source)
+        Wait(250)
+    end
 end
 
 Bridge.server.esx = adapter
