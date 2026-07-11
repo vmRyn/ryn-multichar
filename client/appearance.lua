@@ -268,34 +268,62 @@ end
 function Appearance.OpenCreator(isNew, data, cb)
     local provider = Appearance.GetProvider()
 
-    if provider == 'illenium-appearance' then
-        local ok = pcall(function()
-            if isNew then
-                exports['illenium-appearance']:startPlayerCustomization(function(appearance)
-                    if cb then cb(appearance) end
-                end, {
-                    ped = true,
-                    headBlend = true,
-                    faceFeatures = true,
-                    headOverlays = true,
-                    components = true,
-                    props = true,
-                    tattoos = true,
-                })
-            else
-                exports['illenium-appearance']:startPlayerCustomization(function(appearance)
-                    if cb then cb(appearance) end
-                end)
+    local function invokeIllenium()
+        local config = isNew and {
+            ped = true,
+            headBlend = true,
+            faceFeatures = true,
+            headOverlays = true,
+            components = true,
+            props = true,
+            tattoos = true,
+        } or nil
+
+        -- Illenium blocks until these are clear; SetPlayerModel can leave switch flags set.
+        local deadline = GetGameTimer() + 8000
+        while GetGameTimer() < deadline do
+            if IsScreenFadedIn() and not IsPlayerTeleportActive() and not IsPlayerSwitchInProgress() then
+                break
             end
-        end)
-        if ok then return true end
-    elseif provider == 'fivem-appearance' then
-        local ok = pcall(function()
-            exports['fivem-appearance']:startPlayerCustomization(function(appearance)
+            if not IsScreenFadedIn() then
+                DoScreenFadeIn(0)
+            end
+            Wait(50)
+        end
+
+        if config then
+            exports['illenium-appearance']:startPlayerCustomization(function(appearance)
+                if cb then cb(appearance) end
+            end, config)
+        else
+            exports['illenium-appearance']:startPlayerCustomization(function(appearance)
                 if cb then cb(appearance) end
             end)
+        end
+    end
+
+    if provider == 'illenium-appearance' then
+        CreateThread(function()
+            local ok, err = pcall(invokeIllenium)
+            if not ok then
+                print(('^1[ryn-multichar] illenium-appearance failed: %s^0'):format(err))
+                if cb then cb(nil) end
+            end
         end)
-        if ok then return true end
+        return true
+    elseif provider == 'fivem-appearance' then
+        CreateThread(function()
+            local ok, err = pcall(function()
+                exports['fivem-appearance']:startPlayerCustomization(function(appearance)
+                    if cb then cb(appearance) end
+                end)
+            end)
+            if not ok then
+                print(('^1[ryn-multichar] fivem-appearance failed: %s^0'):format(err))
+                if cb then cb(nil) end
+            end
+        end)
+        return true
     elseif provider == 'qb-clothing' then
         TriggerEvent('qb-clothes:client:CreateFirstCharacter')
         if cb then cb(true) end

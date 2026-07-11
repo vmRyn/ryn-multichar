@@ -139,9 +139,9 @@ function Creation.StartAppearance(characterData)
         local slotIndex = getSlotIndex(characterData)
         Creation.customizing = true
 
-        -- Hide our NUI so the appearance resource can take over.
+        -- UI should already be hidden by createCharacter; reinforce it.
         SetNuiFocus(false, false)
-        SendNUIMessage({ action = 'close' })
+        SendNUIMessage({ action = 'close', immediate = true })
 
         DoScreenFadeOut(300)
         while not IsScreenFadedOut() do Wait(0) end
@@ -155,10 +155,12 @@ function Creation.StartAppearance(characterData)
         end
 
         DoScreenFadeIn(400)
-        while not IsScreenFadedIn() do Wait(0) end
-        Wait(200)
+        local fadeDeadline = GetGameTimer() + 5000
+        while not IsScreenFadedIn() and GetGameTimer() < fadeDeadline do
+            Wait(0)
+        end
+        Wait(300)
 
-        -- Illenium builds its own cams around the ped; leave slot-1 framing as the base.
         local opened = Appearance.OpenCreator(true, characterData, function(appearance)
             CreateThread(function()
                 Creation.customizing = false

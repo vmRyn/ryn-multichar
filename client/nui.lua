@@ -125,21 +125,39 @@ local function localeError(code)
 end
 
 RegisterNUICallback('createCharacter', function(data, cb)
+    -- Drop focus + hide UI immediately so a slow Login / appearance handoff
+    -- can never leave the creation form frozen and untouchable.
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'close', immediate = true })
+
     local character, err = lib.callback.await('ryn-multichar:server:createCharacter', false, data)
     if character then
         cb({ success = true, pending = true })
-        -- Run outside the NUI callback so appearance Wait loops don't stall the UI bridge.
         Creation.StartAppearance(character)
-    elseif err then
-        lib.notify({
-            title = 'ryn-multichar',
-            description = localeError(err),
-            type = 'error',
-        })
-        cb({ success = false, error = err })
-    else
-        cb({ success = false, error = 'create_failed' })
+        return
     end
+
+    local errorCode = err or 'create_failed'
+    cb({ success = false, error = errorCode })
+
+    lib.notify({
+        title = 'ryn-multichar',
+        description = localeError(errorCode),
+        type = 'error',
+    })
+
+    -- Restore the creation form so the player isn't stuck.
+    Wait(100)
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = 'open',
+        screen = 'creation',
+        data = {
+            slotIndex = data and data.slotIndex or 1,
+            fields = Config.CreationFields,
+            error = errorCode,
+        },
+    })
 end)
 
 RegisterNUICallback('selectSpawn', function(data, cb)

@@ -126,9 +126,13 @@ function MulticharApp({
     }
   })
 
-  useNuiEvent('close', () => {
-    if (appRef.current) animateUiClose(appRef.current)
+  useNuiEvent<{ immediate?: boolean }>('close', (payload) => {
     setPhotoModeActive(false)
+    if (payload?.immediate) {
+      setVisible(false)
+      return
+    }
+    if (appRef.current) animateUiClose(appRef.current)
     setTimeout(() => setVisible(false), 200)
   })
 
@@ -254,14 +258,15 @@ function MulticharApp({
   }, [])
 
   const handleCreationSubmit = async (data: Record<string, string>) => {
+    // Hide immediately — Lua also sends close, but don't wait on the round-trip
+    // or a slow character create can leave this form frozen without focus.
+    setVisible(false)
     try {
       const result = await fetchNui<{ success: boolean; pending?: boolean; error?: string }>('createCharacter', {
         ...data,
         slotIndex: activeSlot,
       })
       if (result?.success && result.pending) {
-        // Appearance creator takes over — hide our NUI so it isn't stuck on this form.
-        setVisible(false)
         playUiSound('confirm')
         return
       }
@@ -269,11 +274,16 @@ function MulticharApp({
         playUiSound('confirm')
         notifySuccess(t('toastCreated'), t('toastCreatedDesc'))
         setScreen('characterSelect')
+        setVisible(true)
         await loadCharacters()
       } else {
+        setScreen('creation')
+        setVisible(true)
         notifyError(getErrorTitle(result?.error, t), getErrorMessage(result?.error, t))
       }
     } catch {
+      setScreen('creation')
+      setVisible(true)
       notifyError(t('toastError'), t('toastErrorDesc'))
     }
   }
