@@ -9,8 +9,23 @@ A cinematic multicharacter and spawn selector for **QBox**, **QB-Core**, and **E
 
 **Free to download and use** on your own FiveM server — no purchase required. Redistribution is not allowed; get it from the official repo only.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/character-select.png" alt="Character select — 3D scene with character dock and info panel" width="100%" />
+  <br />
+  <em>Character select — live 3D previews, last played, and character info</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/spawn-selector.png" alt="Spawn selector — pick a location with camera preview" width="100%" />
+  <br />
+  <em>Spawn selector — choose where to enter the world</em>
+</p>
+
 ## Table of contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quick start](#quick-start)
