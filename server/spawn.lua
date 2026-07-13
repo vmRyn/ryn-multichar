@@ -11,6 +11,10 @@ local function coordsToTable(coords)
 end
 
 function ServerSpawn.GetAvailable(source, citizenid)
+    if not Characters.Owns(source, citizenid) then
+        return {}
+    end
+
     local locations = {}
     local adapter = Bridge.GetServer()
 
@@ -61,7 +65,7 @@ end
 
 function ServerSpawn.Resolve(source, citizenid, locationId)
     local adapter = Bridge.GetServer()
-    if not adapter then return nil end
+    if not adapter or type(locationId) ~= 'string' or locationId == '' then return nil end
 
     if locationId == 'lastLocation' then
         return {
@@ -95,11 +99,22 @@ function ServerSpawn.Resolve(source, citizenid, locationId)
 end
 
 function ServerSpawn.Select(source, data)
-    local spawnData = ServerSpawn.Resolve(source, data.citizenid, data.locationId)
+    if type(data) ~= 'table' then return false end
+
+    local citizenid = data.citizenid
+    local locationId = data.locationId
+    if type(citizenid) ~= 'string' or citizenid == '' then return false end
+    if type(locationId) ~= 'string' or locationId == '' then return false end
+
+    if not Characters.Owns(source, citizenid) then return false end
+    if Characters.GetLoaded(source) ~= citizenid then return false end
+
+    local spawnData = ServerSpawn.Resolve(source, citizenid, locationId)
     if not spawnData or not spawnData.coords then return false end
 
-    spawnData.citizenid = data.citizenid
-    Playtime.Start(source, data.citizenid)
+    spawnData.citizenid = citizenid
+    Characters.ClearPending(source, citizenid)
+    Playtime.Start(source, citizenid)
     TriggerClientEvent('ryn-multichar:client:spawnSelected', source, spawnData)
     return true
 end

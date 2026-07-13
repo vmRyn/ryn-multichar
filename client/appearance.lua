@@ -340,10 +340,11 @@ function Appearance.OpenCreator(isNew, data, cb)
                 if cb then cb(result) end
             end
 
+            local citizenid = data and data.citizenid
             TriggerEvent('qb-clothes:client:CreateFirstCharacter')
 
             -- qb-clothing has no reliable completion callback; wait for its NUI
-            -- to open then close (player finished or backed out).
+            -- to open then close, then verify a skin was saved (cancel leaves none).
             local opened = false
             local deadline = GetGameTimer() + 300000
             while GetGameTimer() < deadline do
@@ -352,14 +353,26 @@ function Appearance.OpenCreator(isNew, data, cb)
                 if opened and not focused then
                     Wait(400)
                     if not IsNuiFocused() then
-                        finish(true)
+                        local saved = nil
+                        if citizenid then
+                            for _ = 1, 6 do
+                                saved = lib.callback.await('ryn-multichar:server:getPlayerAppearance', false, citizenid)
+                                if type(saved) == 'table' then break end
+                                Wait(350)
+                            end
+                        end
+                        if type(saved) == 'table' then
+                            finish(true)
+                        else
+                            finish(nil)
+                        end
                         return
                     end
                 end
                 Wait(200)
             end
 
-            finish(true)
+            finish(nil)
         end)
         return true
     elseif provider == 'skinchanger' then

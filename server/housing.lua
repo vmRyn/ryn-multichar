@@ -29,7 +29,7 @@ local function parseCoords(data)
     if type(data) == 'vector3' then return vector4(data.x, data.y, data.z, 0.0) end
 
     if type(data) == 'string' then
-        data = json.decode(data)
+        data = Utils.DecodeJson(data, nil)
     end
 
     if type(data) ~= 'table' then return nil end
@@ -65,7 +65,7 @@ function Housing.GetQbHouses(citizenid)
     if not rows then return locations end
 
     for _, row in ipairs(rows) do
-        local coordsData = row.coords and json.decode(row.coords) or nil
+        local coordsData = row.coords and Utils.DecodeJson(row.coords, nil) or nil
         local coords = nil
 
         if coordsData then
@@ -156,7 +156,7 @@ function Housing.GetPsHousing(citizenid)
     if not rows then return locations end
 
     for _, row in ipairs(rows) do
-        local doorData = row.door_data and json.decode(row.door_data) or nil
+        local doorData = row.door_data and Utils.DecodeJson(row.door_data, nil) or nil
         local coords = parseCoords(doorData)
 
         local label = row.street or ('Property %s'):format(row.property_id)

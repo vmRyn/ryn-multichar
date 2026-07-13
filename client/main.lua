@@ -40,6 +40,16 @@ local function fadeOutForSelect()
     while not IsScreenFadedOut() do Wait(0) end
 end
 
+local function teardownCharacterSelect()
+    resetSpawnSelectState()
+    Photo.Disable()
+    SetNuiFocus(false, false)
+    Camera.Deactivate()
+    Preview.Cleanup()
+    Scene.Unload()
+    SendNUIMessage({ action = 'close' })
+end
+
 local function closeCharacterSelect()
     if not isOpen then
         resetSpawnSelectState()
@@ -47,15 +57,7 @@ local function closeCharacterSelect()
     end
     openGen = openGen + 1
     isOpen = false
-    resetSpawnSelectState()
-
-    Photo.Disable()
-    SetNuiFocus(false, false)
-    Camera.Deactivate()
-    Preview.Cleanup()
-    Scene.Unload()
-
-    SendNUIMessage({ action = 'close' })
+    teardownCharacterSelect()
 end
 
 local function openCharacterSelect()
@@ -66,27 +68,35 @@ local function openCharacterSelect()
     isOpen = true
     resetSpawnSelectState()
 
+    local function aborted()
+        return gen ~= openGen
+    end
+
     local ok, err = pcall(function()
         pcall(function() exports.spawnmanager:setAutoSpawn(false) end)
 
         fadeOutForSelect()
-        if gen ~= openGen then return end
+        if aborted() then return end
 
         prepareCharacterSelect()
-        if gen ~= openGen then return end
+        if aborted() then return end
 
         Scene.Load()
-        if gen ~= openGen then return end
+        if aborted() then return end
 
         startPlayerPedHideLoop()
 
         local characters, slotLimit = lib.callback.await('ryn-multichar:server:getCharacters', false)
-        if gen ~= openGen then return end
+        if aborted() then return end
 
         Preview.SpawnAll(characters or {}, 1)
+        if aborted() then return end
+
         Camera.Activate(1)
+        if aborted() then return end
 
         DoScreenFadeIn(500)
+        if aborted() then return end
 
         SetNuiFocus(true, true)
         SendNUIMessage({
@@ -103,11 +113,14 @@ local function openCharacterSelect()
                 activeScene = Scene.GetActiveId(),
             },
         })
+
+        if aborted() then return end
     end)
 
     if not ok then
         isOpen = false
-        SetNuiFocus(false, false)
+        openGen = openGen + 1
+        teardownCharacterSelect()
         if IsScreenFadedOut() then
             DoScreenFadeIn(500)
         end
@@ -115,8 +128,10 @@ local function openCharacterSelect()
         return false
     end
 
-    if gen ~= openGen then
+    if aborted() then
+        -- closeCharacterSelect may have cleaned already; ensure no leftover UI/cams.
         isOpen = false
+        teardownCharacterSelect()
         return false
     end
 
@@ -212,6 +227,7 @@ RegisterNetEvent('ryn-multichar:client:openAdmin', function()
 end)
 
 exports('OpenCharacterSelect', openCharacterSelect)
+exports('CloseCharacterSelect', closeCharacterSelect)
 
 exports('OpenSpawnSelector', function(characterData)
     local citizenid = type(characterData) == 'table' and characterData.citizenid or characterData

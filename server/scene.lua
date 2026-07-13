@@ -62,16 +62,7 @@ function SceneData.SavePose(source, citizenid, poseId, sceneId)
     local adapter = Bridge.GetServer()
     if not adapter then return false, 'no_framework' end
 
-    local characters = adapter.GetCharacters(source)
-    local owned = false
-    for _, char in ipairs(characters) do
-        if char.citizenid == citizenid then
-            owned = true
-            break
-        end
-    end
-
-    if not owned then return false, 'not_found' end
+    if not Characters.Owns(source, citizenid) then return false, 'not_found' end
 
     local sceneData = SceneData.GetForCharacter(citizenid) or {}
     sceneData.poseId = poseId
@@ -89,12 +80,36 @@ function SceneData.SavePose(source, citizenid, poseId, sceneId)
 end
 
 function SceneData.AttachMetadata(characters)
+    if not characters or #characters == 0 then return end
+
+    local ids = {}
+    local byId = {}
     for _, char in ipairs(characters) do
-        local row = MySQL.single.await(
-            'SELECT last_played, playtime, scene_data FROM ryn_multichar_metadata WHERE character_id = ?',
-            { char.citizenid }
-        )
-        if row then
+        if char.citizenid then
+            ids[#ids + 1] = char.citizenid
+            byId[char.citizenid] = char
+        end
+    end
+
+    if #ids == 0 then return end
+
+    local placeholders = {}
+    for i = 1, #ids do
+        placeholders[i] = '?'
+    end
+
+    local rows = MySQL.query.await(
+        ('SELECT character_id, last_played, playtime, scene_data FROM ryn_multichar_metadata WHERE character_id IN (%s)'):format(
+            table.concat(placeholders, ',')
+        ),
+        ids
+    )
+
+    if not rows then return end
+
+    for _, row in ipairs(rows) do
+        local char = byId[row.character_id]
+        if char then
             char.last_played = row.last_played
             char.playtime = row.playtime
             char.scene_data = decodeSceneData(row.scene_data)

@@ -1,6 +1,10 @@
 RegisterNUICallback('close', function(_, cb)
-    Photo.Disable()
-    SetNuiFocus(false, false)
+    local ok = pcall(function()
+        exports[GetCurrentResourceName()]:CloseCharacterSelect()
+    end)
+    if not ok then
+        TriggerEvent('ryn-multichar:client:close')
+    end
     cb('ok')
 end)
 
@@ -145,6 +149,9 @@ local ERROR_LOCALE_KEYS = {
     not_found = 'error_not_found',
     delete_failed = 'error_delete_failed',
     no_framework = 'error_no_framework',
+    invalid_data = 'error_invalid_data',
+    not_pending = 'error_not_pending',
+    name_mismatch = 'error_name_mismatch',
 }
 
 local function localeError(code)

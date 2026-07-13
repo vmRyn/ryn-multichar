@@ -32,4 +32,7 @@ LocaleEn = {
     ['error_not_found'] = 'Character not found.',
     ['error_delete_failed'] = 'Failed to delete character.',
     ['error_no_license'] = 'Could not resolve player license.',
+    ['error_invalid_data'] = 'Character details are invalid. Check the form and try again.',
+    ['error_not_pending'] = 'That character can no longer be abandoned.',
+    ['error_name_mismatch'] = 'Name confirmation did not match.',
 }

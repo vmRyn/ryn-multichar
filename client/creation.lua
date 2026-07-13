@@ -177,6 +177,11 @@ function Creation.StartAppearance(characterData)
                     return
                 end
 
+                -- Appearance saved — no longer abandonable without name confirm.
+                if characterData.citizenid then
+                    lib.callback.await('ryn-multichar:server:clearPendingCharacter', false, characterData.citizenid)
+                end
+
                 SetNuiFocus(false, false)
                 Scene.HidePlayerPed()
 

@@ -213,7 +213,13 @@ function Scene.Load()
     Scene.HidePlayerPed()
 
     NetworkStartSoloTutorialSession()
-    while not NetworkIsInTutorialSession() do Wait(0) end
+    local tutorialDeadline = GetGameTimer() + 5000
+    while not NetworkIsInTutorialSession() and GetGameTimer() < tutorialDeadline do
+        Wait(0)
+    end
+    if not NetworkIsInTutorialSession() then
+        Utils.Debug('Scene.Load: tutorial session did not start in time')
+    end
 
     DisplayRadar(false)
     SetFollowPedCamViewMode(0)

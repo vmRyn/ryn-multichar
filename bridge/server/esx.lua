@@ -189,6 +189,16 @@ function adapter.LoadCharacter(source, citizenid)
 end
 
 function adapter.DeleteCharacter(source, citizenid)
+    local characters = adapter.GetCharacters(source)
+    local owned = false
+    for _, character in ipairs(characters) do
+        if character.citizenid == citizenid then
+            owned = true
+            break
+        end
+    end
+    if not owned then return false end
+
     local xPlayer = getESX().GetPlayerFromId(source)
     if xPlayer and xPlayer.identifier == citizenid then
         adapter.Logout(source)

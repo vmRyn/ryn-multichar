@@ -64,12 +64,6 @@ function adapter.CreateCharacter(source, data)
         },
     }
 
-    for key, value in pairs(data) do
-        if key ~= 'slotIndex' and key ~= 'cid' and newData.charinfo[key] == nil then
-            newData.charinfo[key] = value
-        end
-    end
-
     local success = getQBCore().Player.Login(source, false, newData)
     if not success then
         return nil, 'create_failed'

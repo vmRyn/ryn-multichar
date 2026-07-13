@@ -3,6 +3,7 @@ lib.callback.register('ryn-multichar:server:getCharacters', function(source)
 end)
 
 lib.callback.register('ryn-multichar:server:prepareCharacterSelect', function(source)
+    Characters.ClearSession(source)
     local adapter = Bridge.GetServer()
     if adapter and adapter.Logout then
         adapter.Logout(source)
@@ -31,11 +32,22 @@ lib.callback.register('ryn-multichar:server:abandonCharacter', function(source, 
     return { success = success, error = err }
 end)
 
+lib.callback.register('ryn-multichar:server:clearPendingCharacter', function(source, citizenid)
+    if type(citizenid) ~= 'string' or citizenid == '' then return false end
+    if not Characters.Owns(source, citizenid) then return false end
+    Characters.ClearPending(source, citizenid)
+    return true
+end)
+
 lib.callback.register('ryn-multichar:server:getSpawnLocations', function(source, citizenid)
     return ServerSpawn.GetAvailable(source, citizenid)
 end)
 
 lib.callback.register('ryn-multichar:server:getPreviewData', function(source, citizenid)
+    if not Characters.Owns(source, citizenid) then
+        return nil, nil
+    end
+
     local adapter = Bridge.GetServer()
     if adapter and adapter.GetPreviewData then
         return adapter.GetPreviewData(source, citizenid)
@@ -47,6 +59,7 @@ end)
 --- Normalized appearance for spawning the local player (single table, model always set).
 lib.callback.register('ryn-multichar:server:getPlayerAppearance', function(source, citizenid)
     if not citizenid or citizenid == '' then return nil end
+    if not Characters.Owns(source, citizenid) then return nil end
 
     local row
     local ok = pcall(function()

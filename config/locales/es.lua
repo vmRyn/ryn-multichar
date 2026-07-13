@@ -32,4 +32,7 @@ LocaleEs = {
     ['error_not_found'] = 'Personaje no encontrado.',
     ['error_delete_failed'] = 'No se pudo eliminar el personaje.',
     ['error_no_license'] = 'No se pudo obtener la licencia del jugador.',
+    ['error_invalid_data'] = 'Los datos del personaje no son válidos. Revisa el formulario e inténtalo de nuevo.',
+    ['error_not_pending'] = 'Ese personaje ya no se puede abandonar.',
+    ['error_name_mismatch'] = 'La confirmación del nombre no coincide.',
 }
