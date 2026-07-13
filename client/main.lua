@@ -111,6 +111,7 @@ local function openCharacterSelect()
                 posePresets = Scene.GetPosePresetsForNui(),
                 scenePresets = Scene.GetScenePresetsForNui(),
                 activeScene = Scene.GetActiveId(),
+                nameFilter = Config.NameFilter,
             },
         })
 
@@ -251,6 +252,7 @@ exports('OpenSpawnSelector', function(characterData)
             activeScene = Scene.GetActiveId(),
             locations = locations,
             citizenid = citizenid,
+            nameFilter = Config.NameFilter,
         },
     })
 end)

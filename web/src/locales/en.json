@@ -14,6 +14,14 @@
   "yourCharactersHint": "Select a slot to continue.",
   "emptySlotHint": "Create a new identity for this slot.",
   "emptySlotClick": "Enter or double-click to create",
+  "badgeNew": "New",
+  "badgeJustNow": "Just now",
+  "badgeHoursAgo": "{count}h ago",
+  "badgeDaysAgo": "{count}d ago",
+  "badgeWeeksAgo": "{count}w ago",
+  "nameBlocked": "That name is reserved or not allowed.",
+  "spawnFilters": "Spawn filters",
+  "spawnFilterAll": "All",
   "notAvailable": "—",
   "discardChanges": "Discard changes?",
   "discardChangesDesc": "You have unsaved details on this form.",
@@ -72,6 +80,7 @@
   "spawnGroupLast": "Resume",
   "spawnGroupHousing": "Properties",
   "spawnGroupPublic": "City",
+  "spawnGroupJobs": "Jobs",
   "noSpawnResults": "No matches",
   "back": "Back",
   "confirmDeletion": "Delete character",
@@ -136,5 +145,6 @@
   "toastErrorNotFound": "Character could not be found.",
   "toastErrorDelete": "Character deletion failed.",
   "toastErrorNoFramework": "Server framework is not ready.",
-  "toastErrorNoLicense": "Could not verify your account license."
+  "toastErrorNoLicense": "Could not verify your account license.",
+  "toastErrorNameBlocked": "That name is reserved or not allowed."
 }

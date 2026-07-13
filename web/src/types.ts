@@ -10,6 +10,7 @@ export interface Character {
     nationality?: string
   }
   job?: {
+    name?: string
     label: string
     grade?: { name: string }
   }
@@ -38,6 +39,7 @@ export interface ScenePreset {
 export interface FeatureFlags {
   photoMode?: boolean
   scenePoses?: boolean
+  spawnFilters?: boolean
 }
 
 export interface AdminSlotEntry {
@@ -67,6 +69,7 @@ export interface SpawnLocation {
   label: string
   icon: string
   description?: string
+  group?: 'last' | 'housing' | 'public' | 'job'
   coords?: { x: number; y: number; z: number; w?: number }
 }
 
@@ -77,6 +80,13 @@ export interface UISounds {
   confirm?: string
   error?: string
   volume?: number
+}
+
+export interface NameFilterConfig {
+  enabled?: boolean
+  blockedExact?: string[]
+  blockedPrefixes?: string[]
+  blockedContains?: string[]
 }
 
 export interface UITheme {

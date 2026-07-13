@@ -82,6 +82,35 @@ local function optionAllowed(field, value)
     return false
 end
 
+local function nameIsBlocked(value)
+    local filter = Config.NameFilter
+    if not filter or not filter.enabled then return false end
+    if type(value) ~= 'string' then return false end
+
+    local normalized = value:gsub('^%s*(.-)%s*$', '%1'):lower()
+    if normalized == '' then return false end
+
+    for _, exact in ipairs(filter.blockedExact or {}) do
+        if type(exact) == 'string' and exact:lower() == normalized then
+            return true
+        end
+    end
+
+    for _, prefix in ipairs(filter.blockedPrefixes or {}) do
+        if type(prefix) == 'string' and prefix ~= '' and normalized:sub(1, #prefix) == prefix:lower() then
+            return true
+        end
+    end
+
+    for _, needle in ipairs(filter.blockedContains or {}) do
+        if type(needle) == 'string' and needle ~= '' and normalized:find(needle:lower(), 1, true) then
+            return true
+        end
+    end
+
+    return false
+end
+
 --- Sanitize create payload against Config.CreationFields (server-side).
 function Characters.ValidateCreateData(data)
     if type(data) ~= 'table' then return nil, 'invalid_data' end
@@ -102,6 +131,9 @@ function Characters.ValidateCreateData(data)
                 if #value > 50 then return nil, 'invalid_data' end
                 if field.type == 'text' and value:find('[^%w%s%-\'%.]') then
                     return nil, 'invalid_data'
+                end
+                if (field.name == 'firstname' or field.name == 'lastname') and nameIsBlocked(value) then
+                    return nil, 'name_blocked'
                 end
             elseif field.type == 'date' then
                 if type(value) ~= 'string' then return nil, 'invalid_data' end

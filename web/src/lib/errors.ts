@@ -13,6 +13,8 @@ const SERVER_ERROR_MAP: Record<string, LocaleKey> = {
   no_license: 'toastErrorNoLicense',
   invalid_pose: 'toastError',
   disabled: 'toastError',
+  name_blocked: 'toastErrorNameBlocked',
+  invalid_data: 'toastErrorCreate',
 }
 
 export function getErrorMessage(code: string | undefined, t: (key: LocaleKey) => string): string {

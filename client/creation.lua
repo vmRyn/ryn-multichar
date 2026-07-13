@@ -120,6 +120,7 @@ function Creation.ReturnToCharacterSelect(slotIndex)
             posePresets = Scene.GetPosePresetsForNui(),
             scenePresets = Scene.GetScenePresetsForNui(),
             activeScene = Scene.GetActiveId(),
+            nameFilter = Config.NameFilter,
         },
     })
 end
@@ -132,6 +133,7 @@ function Creation.Open(slotIndex)
         data = {
             slotIndex = slotIndex,
             fields = Config.CreationFields,
+            nameFilter = Config.NameFilter,
         },
     })
 end
@@ -200,6 +202,7 @@ function Creation.StartAppearance(characterData)
                         activeScene = Scene.GetActiveId(),
                         locations = locations,
                         citizenid = characterData.citizenid,
+                        nameFilter = Config.NameFilter,
                     },
                 })
             end)

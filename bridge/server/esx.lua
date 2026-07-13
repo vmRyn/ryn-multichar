@@ -64,6 +64,7 @@ function adapter.GetCharacters(source)
                 bank = accounts.bank or 0,
             },
             job = {
+                name = job.name or (type(row.job) == 'string' and row.job) or 'unemployed',
                 label = job.label or 'Unemployed',
                 grade = {
                     name = job.grade_label or job.grade_name or tostring(job.grade or row.job_grade or ''),

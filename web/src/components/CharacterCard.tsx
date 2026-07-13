@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { Character } from '@/types'
 import { getFullName } from '@/hooks/useNui'
 import { useLocale } from '@/hooks/useLocale'
+import { getLastOnlineBadge } from '@/lib/characters'
 import { cn } from '@/lib/utils'
 import { animateSlotSelect } from '@/lib/animations'
 import {
@@ -45,6 +46,7 @@ export function CharacterCard({
   const isEmpty = !character
   const cardRef = useRef<HTMLButtonElement>(null)
   const prevActive = useRef(false)
+  const badge = getLastOnlineBadge(character)
 
   useEffect(() => {
     if (isActive && !prevActive.current && cardRef.current) {
@@ -59,6 +61,14 @@ export function CharacterCard({
   }
 
   const slotLabel = String(slotIndex).padStart(2, '0')
+  const badgeLabel =
+    badge?.kind === 'new'
+      ? t('badgeNew')
+      : badge?.kind === 'relative'
+        ? badge.key === 'badgeJustNow'
+          ? t('badgeJustNow')
+          : t(badge.key as 'badgeHoursAgo' | 'badgeDaysAgo' | 'badgeWeeksAgo', { count: badge.count })
+        : null
 
   return (
     <div className="flex min-w-0 flex-1">
@@ -77,8 +87,17 @@ export function CharacterCard({
             onClick={() => onSelect(slotIndex)}
             onDoubleClick={handleDoubleClick}
           >
-            {isLastPlayed && !isEmpty && (
-              <span className="ryn-slot-recent" title={t('lastPlayed')} aria-label={t('lastPlayed')} />
+            {badgeLabel && (
+              <span
+                className={cn(
+                  'ryn-slot-badge',
+                  badge?.kind === 'new' && 'ryn-slot-badge--new',
+                  isLastPlayed && badge?.kind !== 'new' && 'ryn-slot-badge--recent',
+                )}
+                title={badgeLabel}
+              >
+                {badgeLabel}
+              </span>
             )}
 
             {character ? (

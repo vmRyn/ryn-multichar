@@ -35,4 +35,5 @@ LocaleEn = {
     ['error_invalid_data'] = 'Character details are invalid. Check the form and try again.',
     ['error_not_pending'] = 'That character can no longer be abandoned.',
     ['error_name_mismatch'] = 'Name confirmation did not match.',
+    ['error_name_blocked'] = 'That name is reserved or not allowed.',
 }

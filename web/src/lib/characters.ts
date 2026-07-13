@@ -26,3 +26,38 @@ export function getLastPlayedCharacter(characters: Character[]): Character | nul
 
   return latest
 }
+
+export type LastOnlineBadge = { kind: 'new' } | { kind: 'relative'; key: string; count: number }
+
+/** Relative last-online badge for dock slots. */
+export function getLastOnlineBadge(character?: Character): LastOnlineBadge | null {
+  if (!character) return null
+
+  const playtime = character.playtime ?? 0
+  if (!character.last_played && playtime <= 0) {
+    return { kind: 'new' }
+  }
+
+  if (!character.last_played) return null
+
+  const raw = character.last_played
+  const time = typeof raw === 'number' ? raw : Date.parse(String(raw).replace(' ', 'T'))
+  if (!Number.isFinite(time)) {
+    return playtime <= 0 ? { kind: 'new' } : null
+  }
+
+  const diffMs = Math.max(0, Date.now() - time)
+  const minute = 60_000
+  const hour = 60 * minute
+  const day = 24 * hour
+  const week = 7 * day
+
+  if (diffMs < hour) return { kind: 'relative', key: 'badgeJustNow', count: 0 }
+  if (diffMs < day) {
+    return { kind: 'relative', key: 'badgeHoursAgo', count: Math.max(1, Math.floor(diffMs / hour)) }
+  }
+  if (diffMs < week) {
+    return { kind: 'relative', key: 'badgeDaysAgo', count: Math.max(1, Math.floor(diffMs / day)) }
+  }
+  return { kind: 'relative', key: 'badgeWeeksAgo', count: Math.max(1, Math.floor(diffMs / week)) }
+}

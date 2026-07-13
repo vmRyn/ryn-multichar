@@ -10,8 +10,36 @@ local function coordsToTable(coords)
     }
 end
 
+local function getCharacterJobName(character)
+    if not character or type(character.job) ~= 'table' then return nil end
+    local name = character.job.name
+    if type(name) == 'string' and name ~= '' then
+        return name:lower()
+    end
+    return nil
+end
+
+local function characterHasJob(character, jobs)
+    if not jobs or #jobs == 0 then return true end
+    local jobName = getCharacterJobName(character)
+    if not jobName then return false end
+    for _, allowed in ipairs(jobs) do
+        if type(allowed) == 'string' and allowed:lower() == jobName then
+            return true
+        end
+    end
+    return false
+end
+
+local function getOwnedCharacter(source, citizenid)
+    local owns, character = Characters.Owns(source, citizenid)
+    if not owns then return nil end
+    return character
+end
+
 function ServerSpawn.GetAvailable(source, citizenid)
-    if not Characters.Owns(source, citizenid) then
+    local character = getOwnedCharacter(source, citizenid)
+    if not character then
         return {}
     end
 
@@ -24,6 +52,7 @@ function ServerSpawn.GetAvailable(source, citizenid)
             label = L('last_location'),
             description = L('last_location_desc'),
             icon = 'history',
+            group = 'last',
             coords = coordsToTable(adapter.GetLastLocation(source, citizenid)),
         }
     end
@@ -36,6 +65,7 @@ function ServerSpawn.GetAvailable(source, citizenid)
                 label = loc.label,
                 description = loc.description or L('housing_spawn_desc'),
                 icon = loc.icon,
+                group = 'housing',
                 coords = coordsToTable(loc.coords),
             }
         end
@@ -50,13 +80,18 @@ function ServerSpawn.GetAvailable(source, citizenid)
 
         for _, id in ipairs(publicIds) do
             local spawn = Config.Spawns[id]
-            locations[#locations + 1] = {
-                id = id,
-                label = spawn.label,
-                description = spawn.description,
-                icon = spawn.icon,
-                coords = coordsToTable(spawn.coords),
-            }
+            local jobs = spawn.jobs
+            if characterHasJob(character, jobs) then
+                local isJobSpawn = type(jobs) == 'table' and #jobs > 0
+                locations[#locations + 1] = {
+                    id = id,
+                    label = spawn.label,
+                    description = spawn.description,
+                    icon = spawn.icon,
+                    group = isJobSpawn and 'job' or 'public',
+                    coords = coordsToTable(spawn.coords),
+                }
+            end
         end
     end
 
@@ -66,6 +101,9 @@ end
 function ServerSpawn.Resolve(source, citizenid, locationId)
     local adapter = Bridge.GetServer()
     if not adapter or type(locationId) ~= 'string' or locationId == '' then return nil end
+
+    local character = getOwnedCharacter(source, citizenid)
+    if not character then return nil end
 
     if locationId == 'lastLocation' then
         return {
@@ -89,6 +127,9 @@ function ServerSpawn.Resolve(source, citizenid, locationId)
 
     local spawn = Config.Spawns[locationId]
     if spawn then
+        if not characterHasJob(character, spawn.jobs) then
+            return nil
+        end
         return {
             id = locationId,
             coords = spawn.coords,

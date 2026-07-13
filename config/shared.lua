@@ -64,6 +64,7 @@ Config.Spawns = {
         description = 'Mission Row PD. Start near the heart of law enforcement.',
         coords = vector4(428.23, -984.28, 29.76, 3.5),
         icon = 'shield',
+        jobs = { 'police', 'leo', 'sheriff' },
     },
     ['paleto'] = {
         label = 'Paleto Bay',
@@ -77,6 +78,20 @@ Config.SpawnOptions = {
     lastLocation = true,
     publicSpawns = true,
     housing = true,
+    showFilters = true,
+}
+
+Config.NameFilter = {
+    enabled = true,
+    blockedExact = {
+        'admin', 'administrator', 'mod', 'moderator', 'staff', 'owner',
+        'system', 'console', 'null', 'undefined',
+        'michael', 'franklin', 'trevor',
+    },
+    blockedPrefixes = {
+        'admin', 'mod', 'staff', 'owner', 'sys',
+    },
+    blockedContains = {},
 }
 
 -- Bird's-eye preview while choosing a spawn

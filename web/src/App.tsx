@@ -20,7 +20,7 @@ import { demoCharacters, demoCreationFields, demoSlotLimit, demoSpawnLocations, 
 import { getLastPlayedCitizenId, getCharacterForSlot } from '@/lib/characters'
 import { notifyError, notifySuccess, dismissAllToasts } from '@/lib/toast'
 import { playUiSound } from '@/lib/sounds'
-import type { Character, CreationField, FeatureFlags, PosePreset, ScenePreset, SpawnLocation, UITheme } from '@/types'
+import type { Character, CreationField, FeatureFlags, NameFilterConfig, PosePreset, ScenePreset, SpawnLocation, UITheme } from '@/types'
 import { LoadingOverlay } from '@/components/LoadingOverlay'
 import { getErrorMessage, getErrorTitle } from '@/lib/errors'
 import { animateCharacterEntrance, animateSelectChromeOut, animateSelectChromeIn, animateSpawnConfirm, animateUiClose } from '@/lib/animations'
@@ -49,10 +49,11 @@ function MulticharApp({
   const [deleting, setDeleting] = useState(false)
   const [infoCharacter, setInfoCharacter] = useState<Character | null>(null)
   const [theme, setTheme] = useState<UITheme | null>(dev ? demoTheme : null)
-  const [features, setFeatures] = useState<FeatureFlags>(dev ? { photoMode: true, scenePoses: true } : {})
+  const [features, setFeatures] = useState<FeatureFlags>(dev ? { photoMode: true, scenePoses: true, spawnFilters: true } : {})
   const [posePresets, setPosePresets] = useState<PosePreset[]>(dev ? demoPosePresets : [])
   const [scenePresets, setScenePresets] = useState<ScenePreset[]>(dev ? demoScenePresets : [])
   const [activeSceneId, setActiveSceneId] = useState(dev ? 'apartment' : '')
+  const [nameFilter, setNameFilter] = useState<NameFilterConfig | null>(null)
   const [photoModeActive, setPhotoModeActive] = useState(false)
   const [photoUiHidden, setPhotoUiHidden] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
@@ -113,6 +114,7 @@ function MulticharApp({
     if (payload.data?.posePresets) setPosePresets(payload.data.posePresets as PosePreset[])
     if (payload.data?.scenePresets) setScenePresets(payload.data.scenePresets as ScenePreset[])
     if (typeof payload.data?.activeScene === 'string') setActiveSceneId(payload.data.activeScene)
+    if (payload.data?.nameFilter) setNameFilter(payload.data.nameFilter as NameFilterConfig)
     if (payload.screen === 'spawnSelect' || payload.screen === 'creation') {
       playUiSound('transition')
     }
@@ -491,6 +493,7 @@ function MulticharApp({
         <CreationForm
           slotIndex={activeSlot}
           fields={creationFields}
+          nameFilter={nameFilter}
           onSubmit={handleCreationSubmit}
           onCancel={handleBack}
         />
@@ -499,6 +502,7 @@ function MulticharApp({
       {screen === 'spawnSelect' && (
         <SpawnSelector
           locations={spawnLocations}
+          showFilters={features.spawnFilters !== false}
           onConfirm={handleSpawnSelect}
           onCancel={handleBack}
         />

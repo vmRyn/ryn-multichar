@@ -81,13 +81,41 @@ local function getCharacterForSlot(characters, slotIndex)
     return nil
 end
 
+--- Session-scoped random poses for characters without a saved pose (cleared on SpawnAll/Cleanup).
+local sessionRandomPoses = {}
+
+local function pickRandomPoseId()
+    local pool = Config.ScenePoses.randomPool
+    if type(pool) ~= 'table' or #pool == 0 then
+        pool = {}
+        for id in pairs(Config.ScenePoses.presets or {}) do
+            pool[#pool + 1] = id
+        end
+        table.sort(pool)
+    end
+    if #pool == 0 then return nil end
+    return pool[math.random(1, #pool)]
+end
+
 local function resolvePose(character, slotIndex)
     if not Config.ScenePoses.enabled then return nil, nil end
 
-    -- Only use a saved per-character pose. Slot idleAnim handles the default look.
+    -- Saved per-character pose always wins.
     if character and character.scene_data and character.scene_data.poseId then
         local poseId = character.scene_data.poseId
         local pose = Config.ScenePoses.presets[poseId]
+        if pose then
+            return poseId, pose
+        end
+    end
+
+    if Config.ScenePoses.randomOnOpen and character and character.citizenid then
+        local citizenid = character.citizenid
+        if not sessionRandomPoses[citizenid] then
+            sessionRandomPoses[citizenid] = pickRandomPoseId()
+        end
+        local poseId = sessionRandomPoses[citizenid]
+        local pose = poseId and Config.ScenePoses.presets[poseId]
         if pose then
             return poseId, pose
         end
@@ -562,6 +590,7 @@ function Preview.Cleanup()
     Preview.props = {}
     Preview.vehicles = {}
     Preview.characters = {}
+    sessionRandomPoses = {}
 end
 
 function Preview.FocusSlot(slotIndex)

@@ -35,4 +35,5 @@ LocaleEs = {
     ['error_invalid_data'] = 'Los datos del personaje no son válidos. Revisa el formulario e inténtalo de nuevo.',
     ['error_not_pending'] = 'Ese personaje ya no se puede abandonar.',
     ['error_name_mismatch'] = 'La confirmación del nombre no coincide.',
+    ['error_name_blocked'] = 'Ese nombre está reservado o no está permitido.',
 }

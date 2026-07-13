@@ -30,6 +30,14 @@ Config.SceneSync = {
 Config.ScenePoses = {
     enabled = true,
     defaultPreset = 'standing',
+    randomOnOpen = true,
+    randomPool = {
+        'standing',
+        'crossed_arms',
+        'lean_wall',
+        'lean_phone',
+        'smoking',
+    },
     presets = {
         standing = {
             label = 'Standing',

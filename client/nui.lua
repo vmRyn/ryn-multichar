@@ -114,6 +114,7 @@ RegisterNUICallback('playCharacter', function(data, cb)
                 activeScene = Scene.GetActiveId(),
                 locations = locations,
                 citizenid = data.citizenid,
+                nameFilter = Config.NameFilter,
             },
         })
     end
@@ -152,6 +153,7 @@ local ERROR_LOCALE_KEYS = {
     invalid_data = 'error_invalid_data',
     not_pending = 'error_not_pending',
     name_mismatch = 'error_name_mismatch',
+    name_blocked = 'error_name_blocked',
 }
 
 local function localeError(code)
@@ -195,6 +197,7 @@ RegisterNUICallback('createCharacter', function(data, cb)
         data = {
             slotIndex = data and data.slotIndex or 1,
             fields = Config.CreationFields,
+            nameFilter = Config.NameFilter,
             error = errorCode,
         },
     })

@@ -537,6 +537,7 @@ function Scene.GetFeaturesForNui()
     return {
         photoMode = Config.PhotoMode.enabled,
         scenePoses = Config.ScenePoses.enabled,
+        spawnFilters = Config.SpawnOptions.showFilters ~= false,
     }
 end
 

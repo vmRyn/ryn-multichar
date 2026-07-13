@@ -16,11 +16,13 @@ import { animateSpawnChoiceSelect, animateSpawnEntrance } from '@/lib/animations
 
 interface SpawnSelectorProps {
   locations: SpawnLocation[]
+  showFilters?: boolean
   onConfirm: (locationId: string) => void
   onCancel: () => void
 }
 
-type SpawnCategory = 'last' | 'housing' | 'public'
+type SpawnCategory = 'last' | 'housing' | 'public' | 'job'
+type FilterId = 'all' | SpawnCategory
 
 const iconMap: Record<string, React.ReactNode> = {
   'map-pin': <MapPinIcon className="size-4" strokeWidth={2} />,
@@ -31,28 +33,47 @@ const iconMap: Record<string, React.ReactNode> = {
 }
 
 function getCategory(location: SpawnLocation): SpawnCategory {
+  if (location.group === 'last' || location.group === 'housing' || location.group === 'public' || location.group === 'job') {
+    return location.group
+  }
   if (location.id === 'lastLocation') return 'last'
   if (location.id.startsWith('housing:')) return 'housing'
   return 'public'
 }
 
-const categoryOrder: SpawnCategory[] = ['last', 'housing', 'public']
+const categoryOrder: SpawnCategory[] = ['last', 'housing', 'job', 'public']
 
-export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorProps) {
+export function SpawnSelector({
+  locations,
+  showFilters = true,
+  onConfirm,
+  onCancel,
+}: SpawnSelectorProps) {
   const { t } = useLocale()
   const rootRef = useRef<HTMLDivElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
   const choiceRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<FilterId>('all')
+
+  const availableFilters = useMemo(() => {
+    const present = new Set<SpawnCategory>()
+    for (const loc of locations) present.add(getCategory(loc))
+    return (['all', ...categoryOrder.filter((id) => present.has(id))] as FilterId[])
+  }, [locations])
+
+  useEffect(() => {
+    if (!availableFilters.includes(filter)) setFilter('all')
+  }, [availableFilters, filter])
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return locations
     return locations.filter((loc) => {
+      if (filter !== 'all' && getCategory(loc) !== filter) return false
+      if (!needle) return true
       const haystack = `${loc.label} ${loc.description ?? ''}`.toLowerCase()
       return haystack.includes(needle)
     })
-  }, [locations, query])
+  }, [locations, query, filter])
 
   const [selectedId, setSelectedId] = useState<string | null>(filtered[0]?.id ?? null)
 
@@ -66,6 +87,7 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
       last: t('spawnGroupLast'),
       housing: t('spawnGroupHousing'),
       public: t('spawnGroupPublic'),
+      job: t('spawnGroupJobs'),
     }
 
     return categoryOrder
@@ -157,6 +179,14 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
       ? t('noSpawnLocations')
       : t('noSpawnResults')
 
+  const filterLabel = (id: FilterId) => {
+    if (id === 'all') return t('spawnFilterAll')
+    if (id === 'last') return t('spawnGroupLast')
+    if (id === 'housing') return t('spawnGroupHousing')
+    if (id === 'job') return t('spawnGroupJobs')
+    return t('spawnGroupPublic')
+  }
+
   return (
     <div ref={rootRef} className="ryn-spawn-screen" data-animate="spawn-panel">
       <header className="ryn-spawn-title" data-animate="spawn-title">
@@ -179,6 +209,26 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
           </div>
         </div>
 
+        {showFilters && availableFilters.length > 2 && (
+          <div className="ryn-spawn-filters" role="tablist" aria-label={t('spawnFilters')}>
+            {availableFilters.map((id) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={filter === id}
+                className={cn('ryn-spawn-filter', filter === id && 'ryn-spawn-filter--active')}
+                onClick={() => {
+                  setFilter(id)
+                  playUiSound('slotSelect')
+                }}
+              >
+                {filterLabel(id)}
+              </button>
+            ))}
+          </div>
+        )}
+
         {locations.length > 3 && (
           <div className="ryn-spawn-rail__search">
             <Input
@@ -190,7 +240,7 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
           </div>
         )}
 
-        <div ref={listRef} className="ryn-spawn-rail__list">
+        <div className="ryn-spawn-rail__list">
           {groups.length === 0 ? (
             <p className="ryn-spawn-empty">{emptyMessage}</p>
           ) : (

@@ -14,6 +14,14 @@
   "yourCharactersHint": "Selecciona una ranura para continuar.",
   "emptySlotHint": "Crea una nueva identidad para esta ranura.",
   "emptySlotClick": "Enter o doble clic para crear",
+  "badgeNew": "Nuevo",
+  "badgeJustNow": "Ahora",
+  "badgeHoursAgo": "Hace {count}h",
+  "badgeDaysAgo": "Hace {count}d",
+  "badgeWeeksAgo": "Hace {count}sem",
+  "nameBlocked": "Ese nombre está reservado o no está permitido.",
+  "spawnFilters": "Filtros de aparición",
+  "spawnFilterAll": "Todos",
   "notAvailable": "—",
   "discardChanges": "¿Descartar cambios?",
   "discardChangesDesc": "Hay datos sin guardar en este formulario.",
@@ -72,6 +80,7 @@
   "spawnGroupLast": "Continuar",
   "spawnGroupHousing": "Propiedades",
   "spawnGroupPublic": "Ciudad",
+  "spawnGroupJobs": "Trabajos",
   "noSpawnResults": "Sin resultados",
   "back": "Volver",
   "confirmDeletion": "Eliminar personaje",
@@ -136,5 +145,6 @@
   "toastErrorNotFound": "No se encontró el personaje.",
   "toastErrorDelete": "No se pudo eliminar el personaje.",
   "toastErrorNoFramework": "El framework del servidor no está listo.",
-  "toastErrorNoLicense": "No se pudo verificar la licencia de tu cuenta."
+  "toastErrorNoLicense": "No se pudo verificar la licencia de tu cuenta.",
+  "toastErrorNameBlocked": "Ese nombre está reservado o no está permitido."
 }

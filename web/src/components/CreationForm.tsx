@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CreationField } from '@/types'
+import type { CreationField, NameFilterConfig } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldLabel } from '@/components/ui/field'
@@ -25,18 +25,45 @@ import { useLocale } from '@/hooks/useLocale'
 interface CreationFormProps {
   slotIndex: number
   fields: CreationField[]
+  nameFilter?: NameFilterConfig | null
   onSubmit: (data: Record<string, string>) => Promise<void>
   onCancel: () => void
+}
+
+function nameIsBlocked(value: string, filter?: NameFilterConfig | null) {
+  if (!filter?.enabled) return false
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return false
+
+  for (const exact of filter.blockedExact ?? []) {
+    if (exact.toLowerCase() === normalized) return true
+  }
+  for (const prefix of filter.blockedPrefixes ?? []) {
+    if (prefix && normalized.startsWith(prefix.toLowerCase())) return true
+  }
+  for (const needle of filter.blockedContains ?? []) {
+    if (needle && normalized.includes(needle.toLowerCase())) return true
+  }
+  return false
 }
 
 function validateFields(
   fields: CreationField[],
   formData: Record<string, string>,
+  nameFilter?: NameFilterConfig | null,
 ): Record<string, string> {
   const errors: Record<string, string> = {}
   for (const field of fields) {
     if (field.required && !formData[field.name]?.trim()) {
       errors[field.name] = 'required'
+      continue
+    }
+    if (
+      (field.name === 'firstname' || field.name === 'lastname') &&
+      formData[field.name] &&
+      nameIsBlocked(formData[field.name], nameFilter)
+    ) {
+      errors[field.name] = 'blocked'
     }
   }
   return errors
@@ -67,7 +94,7 @@ function isFormDirty(fields: CreationField[], formData: Record<string, string>) 
   return false
 }
 
-export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: CreationFormProps) {
+export function CreationForm({ slotIndex, fields, nameFilter, onSubmit, onCancel }: CreationFormProps) {
   const { t } = useLocale()
   const [formData, setFormData] = useState<Record<string, string>>(() => getInitialFormData(fields))
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -76,8 +103,8 @@ export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: Creation
   const [confirmDiscard, setConfirmDiscard] = useState(false)
 
   const isValid = useMemo(
-    () => Object.keys(validateFields(fields, formData)).length === 0,
-    [fields, formData],
+    () => Object.keys(validateFields(fields, formData, nameFilter)).length === 0,
+    [fields, formData, nameFilter],
   )
 
   const dirty = useMemo(() => isFormDirty(fields, formData), [fields, formData])
@@ -112,7 +139,7 @@ export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: Creation
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const nextErrors = validateFields(fields, formData)
+    const nextErrors = validateFields(fields, formData, nameFilter)
     setErrors(nextErrors)
     setTouched(Object.fromEntries(fields.map((field) => [field.name, true])))
     if (Object.keys(nextErrors).length > 0) return
@@ -128,10 +155,10 @@ export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: Creation
   const updateField = useCallback((name: string, value: string) => {
     setFormData((prev) => {
       const next = { ...prev, [name]: value }
-      setErrors(validateFields(fields, next))
+      setErrors(validateFields(fields, next, nameFilter))
       return next
     })
-  }, [fields])
+  }, [fields, nameFilter])
 
   const renderFieldControl = (field: CreationField, showError: boolean) => {
     if (field.type === 'select') {
@@ -213,7 +240,9 @@ export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: Creation
         {renderFieldControl(field, !!showError)}
         {showError && (
           <p className="mt-1 text-xs text-destructive">
-            {t('fieldRequired', { field: field.label })}
+            {errors[field.name] === 'blocked'
+              ? t('nameBlocked')
+              : t('fieldRequired', { field: field.label })}
           </p>
         )}
       </Field>
