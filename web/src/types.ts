@@ -23,6 +23,7 @@ export interface Character {
   scene_data?: {
     poseId?: string
     sceneId?: string
+    portrait?: string
   }
 }
 
@@ -40,6 +41,7 @@ export interface FeatureFlags {
   photoMode?: boolean
   scenePoses?: boolean
   spawnFilters?: boolean
+  portraits?: boolean
 }
 
 export interface AdminSlotEntry {
@@ -92,6 +94,7 @@ export interface NameFilterConfig {
 export interface UITheme {
   theme: string
   serverName?: string
+  tip?: string
   colors: {
     primary: string
     background: string

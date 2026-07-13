@@ -134,10 +134,18 @@ Config.Discord = {
     },
 }
 
+-- One place for product branding (overrides matching Config.UI fields when set).
+Config.Brand = {
+    wordmark = 'RYN',
+    logo = '', -- URL or nui:// path; empty uses wordmark mark
+    accent = '#2D7FF9', -- drives primary UI accent
+    tip = 'Select who you are in the city.',
+}
+
 Config.UI = {
     locale = 'en', -- 'en' | 'es'
     theme = 'royal-blue',
-    -- Shown top-left in character select. Mark letter uses the first character.
+    -- Fallback if Config.Brand.wordmark is empty
     serverName = 'RYN',
     colors = {
         primary = '#2D7FF9',
@@ -150,10 +158,7 @@ Config.UI = {
         warning = '#F59E0B',
         danger = '#DC2626',
     },
-    -- Optional server logo (URL or nui:// path). Leave empty for the serverName mark.
     logo = '',
-    -- Kenney UI Audio (CC0) — bundled in web/public/sounds/kenney/
-    -- Leave empty to use defaults; override with nui:// paths if needed
     sounds = {
         enabled = true,
         volume = 0.28,

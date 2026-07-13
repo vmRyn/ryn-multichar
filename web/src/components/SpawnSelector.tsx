@@ -174,11 +174,6 @@ export function SpawnSelector({
     if (el) animateSpawnChoiceSelect(el)
   }
 
-  const emptyMessage =
-    locations.length === 0
-      ? t('noSpawnLocations')
-      : t('noSpawnResults')
-
   const filterLabel = (id: FilterId) => {
     if (id === 'all') return t('spawnFilterAll')
     if (id === 'last') return t('spawnGroupLast')
@@ -242,7 +237,17 @@ export function SpawnSelector({
 
         <div className="ryn-spawn-rail__list">
           {groups.length === 0 ? (
-            <p className="ryn-spawn-empty">{emptyMessage}</p>
+            <div className="ryn-spawn-empty-state">
+              <span className="ryn-spawn-empty-state__mark" aria-hidden>
+                <MapPinIcon className="size-5" strokeWidth={1.75} />
+              </span>
+              <p className="ryn-spawn-empty-state__title">
+                {locations.length === 0 ? t('noSpawnLocationsTitle') : t('noSpawnResultsTitle')}
+              </p>
+              <p className="ryn-spawn-empty-state__copy">
+                {locations.length === 0 ? t('noSpawnLocationsBody') : t('noSpawnResultsBody')}
+              </p>
+            </div>
           ) : (
             groups.map((group) => (
               <div key={group.category} className="ryn-spawn-rail__group">

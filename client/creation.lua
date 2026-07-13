@@ -112,7 +112,7 @@ function Creation.ReturnToCharacterSelect(slotIndex)
         action = 'open',
         screen = 'characterSelect',
         data = {
-            theme = Config.UI,
+            theme = Utils.GetUiTheme(),
             creationFields = Config.CreationFields,
             characters = characters,
             slotLimit = slotLimit,
@@ -195,7 +195,7 @@ function Creation.StartAppearance(characterData)
                     action = 'open',
                     screen = 'spawnSelect',
                     data = {
-                        theme = Config.UI,
+                        theme = Utils.GetUiTheme(),
                         features = Scene.GetFeaturesForNui(),
                         posePresets = Scene.GetPosePresetsForNui(),
                         scenePresets = Scene.GetScenePresetsForNui(),

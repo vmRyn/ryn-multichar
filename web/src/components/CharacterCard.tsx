@@ -47,6 +47,7 @@ export function CharacterCard({
   const cardRef = useRef<HTMLButtonElement>(null)
   const prevActive = useRef(false)
   const badge = getLastOnlineBadge(character)
+  const portrait = character?.scene_data?.portrait
 
   useEffect(() => {
     if (isActive && !prevActive.current && cardRef.current) {
@@ -102,14 +103,17 @@ export function CharacterCard({
 
             {character ? (
               <>
-                <span className="ryn-slot-avatar" aria-hidden>
-                  {initials(character)}
+                <span className={cn('ryn-slot-avatar', portrait && 'ryn-slot-avatar--photo')} aria-hidden>
+                  {portrait ? (
+                    <img src={portrait} alt="" className="ryn-slot-avatar__img" />
+                  ) : (
+                    initials(character)
+                  )}
                 </span>
                 <span className="ryn-slot-body">
                   <span className="ryn-slot-num">{slotLabel}</span>
                   <p className="ryn-slot-name">{getFullName(character.charinfo)}</p>
                   <p className="ryn-slot-job">{character.job?.label ?? t('unemployed')}</p>
-                  <p className="ryn-slot-id">{character.citizenid}</p>
                 </span>
               </>
             ) : (
@@ -119,7 +123,7 @@ export function CharacterCard({
                 </span>
                 <span className="ryn-slot-body">
                   <span className="ryn-slot-num">{slotLabel}</span>
-                  <p className="ryn-slot-name">{t('newCharacter')}</p>
+                  <p className="ryn-slot-name">{t('emptySlotTitle')}</p>
                   <p className="ryn-slot-job">{t('emptySlotClick')}</p>
                 </span>
               </>

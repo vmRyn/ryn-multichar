@@ -6,6 +6,7 @@ interface SelectHeaderProps {
   slotLimit: number
   logo?: string
   serverName?: string
+  tip?: string
   hidden?: boolean
 }
 
@@ -22,10 +23,12 @@ export function SelectHeader({
   slotLimit,
   logo,
   serverName,
+  tip,
   hidden = false,
 }: SelectHeaderProps) {
   const { t } = useLocale()
   const brand = resolveServerBrand(serverName, t('brand'))
+  const subtitle = tip?.trim() || t('selectCharacter')
 
   return (
     <header className={cn('ryn-select-header', hidden && 'ryn-select-header--hidden')} data-animate="chrome">
@@ -37,12 +40,15 @@ export function SelectHeader({
             {brand.initial}
           </span>
         )}
-        <span className="ryn-wordmark">{brand.name}</span>
+        <div className="ryn-select-header__brand-text">
+          <span className="ryn-wordmark">{brand.name}</span>
+          {tip?.trim() ? <span className="ryn-brand-tip">{tip}</span> : null}
+        </div>
       </div>
 
       <div className="ryn-select-header__center">
         <h1 className="ryn-select-header__title">{t('multicharacter')}</h1>
-        <p className="ryn-select-header__subtitle">{t('selectCharacter')}</p>
+        <p className="ryn-select-header__subtitle">{subtitle}</p>
         <div className="ryn-select-header__rule" aria-hidden>
           <span className="ryn-select-header__rule-line" />
           <span className="ryn-select-header__rule-mark" />

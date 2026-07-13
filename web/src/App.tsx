@@ -349,7 +349,7 @@ function MulticharApp({
     playUiSound('transition')
   }, [])
 
-  const handlePoseSaved = useCallback((citizenid: string, poseId: string, sceneId?: string) => {
+  const handlePoseSaved = useCallback((citizenid: string, poseId: string, sceneId?: string, portrait?: string) => {
     setCharacters((current) =>
       current.map((character) =>
         character.citizenid === citizenid
@@ -359,12 +359,16 @@ function MulticharApp({
                 ...(character.scene_data ?? {}),
                 poseId,
                 ...(sceneId ? { sceneId } : {}),
+                ...(portrait ? { portrait } : {}),
               },
             }
           : character,
       ),
     )
-    notifySuccess(t('poseSaved'), t('poseSavedDesc'))
+    notifySuccess(
+      t('poseSaved'),
+      portrait ? t('poseSavedPortraitDesc') : t('poseSavedDesc'),
+    )
   }, [t])
 
   const handleBack = useCallback(() => {
@@ -443,6 +447,7 @@ function MulticharApp({
             slotLimit={slotLimit}
             logo={theme?.logo}
             serverName={theme?.serverName}
+            tip={theme?.tip}
             hidden={selectChromeHidden}
           />
           <CharacterInfoPanel
@@ -479,6 +484,7 @@ function MulticharApp({
         posePresets={posePresets}
         scenePresets={scenePresets}
         activeSceneId={activeSceneId}
+        portraitsEnabled={!!features.portraits}
         onClose={handlePhotoModeClose}
         onPoseSaved={handlePoseSaved}
         onUiHiddenChange={setPhotoUiHidden}

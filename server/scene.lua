@@ -55,7 +55,7 @@ function SceneData.GetForCharacter(citizenid)
     return decodeSceneData(row and row.scene_data)
 end
 
-function SceneData.SavePose(source, citizenid, poseId, sceneId)
+function SceneData.SavePose(source, citizenid, poseId, sceneId, portrait)
     if not Config.ScenePoses.enabled then return false, 'disabled' end
     if not Config.ScenePoses.presets[poseId] then return false, 'invalid_pose' end
 
@@ -68,6 +68,13 @@ function SceneData.SavePose(source, citizenid, poseId, sceneId)
     sceneData.poseId = poseId
     if sceneId and Config.ScenePresets and Config.ScenePresets[sceneId] then
         sceneData.sceneId = sceneId
+    end
+
+    if type(portrait) == 'string' and portrait:sub(1, 11) == 'data:image/' then
+        -- Cap payload size so metadata rows stay reasonable.
+        if #portrait <= 180000 then
+            sceneData.portrait = portrait
+        end
     end
 
     MySQL.insert.await([[

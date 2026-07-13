@@ -58,3 +58,38 @@ function Utils.GetCharacterFullName(charinfo)
     if not charinfo then return '' end
     return ('%s %s'):format(charinfo.firstname or '', charinfo.lastname or '')
 end
+
+--- Merged Brand + UI theme payload for NUI.
+function Utils.GetUiTheme()
+    local ui = Config.UI or {}
+    local brand = Config.Brand or {}
+    local colors = Utils.DeepCopy(ui.colors or {})
+
+    if type(brand.accent) == 'string' and brand.accent ~= '' then
+        colors.primary = brand.accent
+    end
+
+    local wordmark = brand.wordmark
+    if type(wordmark) ~= 'string' or wordmark == '' then
+        wordmark = ui.serverName or 'RYN'
+    end
+
+    local logo = brand.logo
+    if type(logo) ~= 'string' or logo == '' then
+        logo = ui.logo or ''
+    end
+
+    return {
+        theme = ui.theme or 'royal-blue',
+        locale = ui.locale or 'en',
+        serverName = wordmark,
+        logo = logo,
+        tip = type(brand.tip) == 'string' and brand.tip or '',
+        colors = colors,
+        sounds = ui.sounds,
+    }
+end
+
+function Utils.CanCapturePortrait()
+    return GetResourceState('screenshot-basic') == 'started'
+end

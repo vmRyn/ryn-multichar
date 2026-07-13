@@ -35,6 +35,40 @@ function Photo.SetSlot(slotIndex)
     end
 end
 
+--- Optional portrait capture (requires screenshot-basic). Returns data URL or nil.
+function Photo.CapturePortrait()
+    if not Utils.CanCapturePortrait() then
+        return nil
+    end
+
+    local p = promise.new()
+    local ok = pcall(function()
+        exports['screenshot-basic']:requestScreenshot({
+            encoding = 'jpg',
+            quality = 0.55,
+        }, function(data)
+            p:resolve(data)
+        end)
+    end)
+
+    if not ok then
+        return nil
+    end
+
+    local result = Citizen.Await(p)
+    if type(result) ~= 'string' or result == '' then
+        return nil
+    end
+    if not result:find('^data:image/', 1, false) then
+        result = 'data:image/jpeg;base64,' .. result
+    end
+    if #result > 180000 then
+        Utils.Debug('Portrait too large, skipped')
+        return nil
+    end
+    return result
+end
+
 CreateThread(function()
     while true do
         if Photo.active then

@@ -26,9 +26,10 @@ interface PhotoModeOverlayProps {
   scenePresets: ScenePreset[]
   activeSceneId?: string
   onClose: () => void
-  onPoseSaved: (citizenid: string, poseId: string, sceneId?: string) => void
+  onPoseSaved: (citizenid: string, poseId: string, sceneId?: string, portrait?: string) => void
   onUiHiddenChange?: (hidden: boolean) => void
   onSceneChange?: (sceneId: string) => void
+  portraitsEnabled?: boolean
 }
 
 export function PhotoModeOverlay({
@@ -42,6 +43,7 @@ export function PhotoModeOverlay({
   onPoseSaved,
   onUiHiddenChange,
   onSceneChange,
+  portraitsEnabled = false,
 }: PhotoModeOverlayProps) {
   const { t } = useLocale()
   const dragRef = useRef<{ x: number; y: number } | null>(null)
@@ -196,22 +198,46 @@ export function PhotoModeOverlay({
   const handleSavePose = async () => {
     if (!character || !selectedPose) return
     setSaving(true)
+    const wasHidden = uiHidden
     try {
       // Persist the live scene, not a stale dropdown value that never switched.
       const sceneToSave = activeSceneId || selectedScene || undefined
-      const result = await fetchNui<{ success: boolean; scene_data?: { poseId?: string; sceneId?: string } }>('saveScenePose', {
+      if (portraitsEnabled) {
+        setUiHidden(true)
+        onUiHiddenChange?.(true)
+        await new Promise((resolve) => window.setTimeout(resolve, 220))
+      }
+
+      const result = await fetchNui<{
+        success: boolean
+        scene_data?: { poseId?: string; sceneId?: string; portrait?: string }
+      }>('saveScenePose', {
         citizenid: character.citizenid,
         poseId: selectedPose,
         sceneId: sceneToSave,
+        capturePortrait: portraitsEnabled,
       })
+
       if (result?.success) {
-        onPoseSaved(character.citizenid, selectedPose, sceneToSave)
+        onPoseSaved(
+          character.citizenid,
+          selectedPose,
+          sceneToSave,
+          result.scene_data?.portrait,
+        )
       } else {
         notifyError(t('poseSaveFailed'), t('poseSaveFailedDesc'))
       }
     } catch {
       notifyError(t('poseSaveFailed'), t('poseSaveFailedDesc'))
     } finally {
+      if (portraitsEnabled && !wasHidden) {
+        setUiHidden(false)
+        onUiHiddenChange?.(false)
+      } else if (portraitsEnabled && wasHidden) {
+        setUiHidden(true)
+        onUiHiddenChange?.(true)
+      }
       setSaving(false)
     }
   }
@@ -242,7 +268,9 @@ export function PhotoModeOverlay({
           </span>
           <div>
             <p className="ryn-side-panel__title">{t('photoMode')}</p>
-            <p className="ryn-side-panel__hint">{t('photoModeHint')}</p>
+            <p className="ryn-side-panel__hint">
+              {portraitsEnabled ? t('photoModeHintPortrait') : t('photoModeHint')}
+            </p>
           </div>
         </div>
 

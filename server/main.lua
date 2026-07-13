@@ -111,8 +111,21 @@ lib.callback.register('ryn-multichar:server:selectSpawn', function(source, data)
 end)
 
 lib.callback.register('ryn-multichar:server:saveScenePose', function(source, data)
-    local success, result = SceneData.SavePose(source, data.citizenid, data.poseId, data.sceneId)
-    return { success = success, error = type(result) == 'string' and result or nil, scene_data = type(result) == 'table' and result or nil }
+    if type(data) ~= 'table' then
+        return { success = false, error = 'invalid_data' }
+    end
+    local success, result = SceneData.SavePose(
+        source,
+        data.citizenid,
+        data.poseId,
+        data.sceneId,
+        data.portrait
+    )
+    return {
+        success = success,
+        error = type(result) == 'string' and result or nil,
+        scene_data = type(result) == 'table' and result or nil,
+    }
 end)
 
 lib.callback.register('ryn-multichar:server:admin:canOpen', function(source)

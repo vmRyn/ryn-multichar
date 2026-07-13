@@ -538,6 +538,7 @@ function Scene.GetFeaturesForNui()
         photoMode = Config.PhotoMode.enabled,
         scenePoses = Config.ScenePoses.enabled,
         spawnFilters = Config.SpawnOptions.showFilters ~= false,
+        portraits = Utils.CanCapturePortrait(),
     }
 end
 

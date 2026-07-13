@@ -9,10 +9,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
+  BriefcaseIcon,
   CameraIcon,
   InfoIcon,
   PlayIcon,
   PlusIcon,
+  SparklesIcon,
   Trash2Icon,
 } from 'lucide-react'
 
@@ -49,6 +51,9 @@ export function CharacterInfoPanel({
   onPhotoMode,
 }: CharacterInfoPanelProps) {
   const { t } = useLocale()
+  const jobLabel = character?.job?.label ?? t('unemployed')
+  const gradeLabel = character?.job?.grade?.name
+  const isUnemployed = !character?.job?.label || character.job.label.toLowerCase() === 'unemployed'
 
   return (
     <aside
@@ -69,14 +74,21 @@ export function CharacterInfoPanel({
         <>
           <div className="ryn-info-identity">
             <h2 className="ryn-info-identity__name">{getFullName(character.charinfo)}</h2>
-            <p className="ryn-info-identity__meta">
-              {character.job?.label ?? t('unemployed')}
-              {character.job?.grade?.name ? ` · ${character.job.grade.name}` : ''}
-            </p>
+            <p className="ryn-info-identity__meta">{character.citizenid}</p>
+          </div>
+
+          <div className={cn('ryn-role-card', isUnemployed && 'ryn-role-card--muted')}>
+            <span className="ryn-role-card__icon" aria-hidden>
+              <BriefcaseIcon className="size-3.5" strokeWidth={2.25} />
+            </span>
+            <div className="ryn-role-card__body">
+              <span className="ryn-role-card__label">{t('role')}</span>
+              <span className="ryn-role-card__title">{jobLabel}</span>
+              {gradeLabel ? <span className="ryn-role-card__grade">{gradeLabel}</span> : null}
+            </div>
           </div>
 
           <div className="ryn-stat-grid">
-            <Stat label={t('citizenId')} value={character.citizenid} />
             <Stat label={t('slotLabel')} value={String(slotIndex).padStart(2, '0')} />
             <Stat
               label={t('cash')}
@@ -138,13 +150,13 @@ export function CharacterInfoPanel({
         </>
       ) : (
         <>
-          <div className="ryn-info-identity">
-            <h2 className="ryn-info-identity__name">{t('newCharacter')}</h2>
-            <p className="ryn-info-identity__meta">{t('createSubtitle')}</p>
-          </div>
-          <div className="ryn-info-empty">
-            <p>{t('emptySlotHint')}</p>
-            <p className="ryn-info-empty__slot">{t('createSlotMeta', { slot: slotIndex })}</p>
+          <div className="ryn-empty-hero">
+            <span className="ryn-empty-hero__mark" aria-hidden>
+              <SparklesIcon className="size-5" strokeWidth={1.75} />
+            </span>
+            <h2 className="ryn-empty-hero__title">{t('emptySlotTitle')}</h2>
+            <p className="ryn-empty-hero__copy">{t('emptySlotBody')}</p>
+            <p className="ryn-empty-hero__meta">{t('createSlotMeta', { slot: slotIndex })}</p>
           </div>
           <div className="ryn-info-actions">
             <Button className="ryn-btn-play" size="lg" onClick={onCreate}>

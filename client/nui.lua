@@ -88,11 +88,20 @@ RegisterNUICallback('previewPose', function(data, cb)
 end)
 
 RegisterNUICallback('saveScenePose', function(data, cb)
-    local result = lib.callback.await('ryn-multichar:server:saveScenePose', false, data)
-    if result and result.success and result.scene_data then
-        Preview.UpdateCharacterPose(data.citizenid, result.scene_data)
-    end
-    cb(result or { success = false })
+    CreateThread(function()
+        local payload = data or {}
+        if payload.capturePortrait then
+            -- NUI should already be hidden for a clean frame.
+            Wait(180)
+            payload.portrait = Photo.CapturePortrait()
+        end
+
+        local result = lib.callback.await('ryn-multichar:server:saveScenePose', false, payload)
+        if result and result.success and result.scene_data then
+            Preview.UpdateCharacterPose(payload.citizenid, result.scene_data)
+        end
+        cb(result or { success = false })
+    end)
 end)
 
 RegisterNUICallback('playCharacter', function(data, cb)
@@ -107,7 +116,7 @@ RegisterNUICallback('playCharacter', function(data, cb)
             action = 'open',
             screen = 'spawnSelect',
             data = {
-                theme = Config.UI,
+                theme = Utils.GetUiTheme(),
                 features = Scene.GetFeaturesForNui(),
                 posePresets = Scene.GetPosePresetsForNui(),
                 scenePresets = Scene.GetScenePresetsForNui(),
