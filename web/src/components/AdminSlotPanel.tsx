@@ -35,6 +35,7 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
   const [onlinePlayers, setOnlinePlayers] = useState<OnlinePlayerSlot[]>([])
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
 
   const loadData = useCallback(async (query = search) => {
     setLoading(true)
@@ -88,6 +89,7 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
       const result = await fetchNui<{ success: boolean }>('adminDeleteEntry', { license })
       if (result?.success) {
         notifySuccess(t('adminDeleted'), t('adminDeletedDesc'))
+        setPendingDelete(null)
         await loadData(search)
       } else {
         notifyError(t('toastError'), t('toastErrorDesc'))
@@ -98,6 +100,7 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
   }
 
   const handleClose = () => {
+    setPendingDelete(null)
     fetchNui('adminClose').catch(() => {})
     onClose()
   }
@@ -128,17 +131,25 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
         className="ryn-modal-backdrop absolute inset-0"
         onClick={handleClose}
         aria-label={t('close')}
+        tabIndex={-1}
       />
 
       <AnimatedPanel className="relative w-full max-w-xl" animationKey="admin">
-        <div className="ryn-panel ryn-admin-panel">
+        <div
+          className="ryn-panel ryn-admin-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ryn-admin-title"
+        >
           <div className="ryn-modal-body">
             <div className="ryn-side-panel__heading">
               <span className="ryn-side-panel__icon" aria-hidden>
                 <ShieldIcon className="size-3.5" strokeWidth={2.25} />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="ryn-side-panel__title">{t('adminSlotTitle')}</p>
+                <p id="ryn-admin-title" className="ryn-side-panel__title">
+                  {t('adminSlotTitle')}
+                </p>
                 <p className="ryn-side-panel__hint">{t('adminSlotSubtitle')}</p>
               </div>
               <button
@@ -151,6 +162,23 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
               </button>
             </div>
 
+            {pendingDelete ? (
+              <div className="ryn-admin-confirm">
+                <p className="ryn-side-panel__title">{t('adminConfirmReset')}</p>
+                <p className="ryn-side-panel__hint">{t('adminConfirmResetDesc')}</p>
+                <p className="ryn-admin-card__name ryn-admin-card__name--mono mt-3">{pendingDelete}</p>
+                <div className="ryn-modal-actions mt-4">
+                  <Button size="lg" variant="destructive" onClick={() => handleDelete(pendingDelete)}>
+                    <Trash2Icon className="size-4" />
+                    {t('adminConfirmResetAction')}
+                  </Button>
+                  <Button size="lg" variant="outline" onClick={() => setPendingDelete(null)}>
+                    {t('cancel')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
             <div className="ryn-admin-search">
               <SearchIcon className="ryn-admin-search__icon" aria-hidden />
               <Input
@@ -226,7 +254,7 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
                         <p className="ryn-admin-card__meta">
                           {entry.source}
                           {' · '}
-                          {entry.updated_at ? new Date(entry.updated_at).toLocaleString() : '—'}
+                          {entry.updated_at ? new Date(entry.updated_at).toLocaleString() : t('notAvailable')}
                         </p>
                       </div>
                       <Input
@@ -244,7 +272,7 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDelete(entry.license)}
+                        onClick={() => setPendingDelete(entry.license)}
                         aria-label={t('adminReset')}
                       >
                         <Trash2Icon className="size-3.5" />
@@ -260,6 +288,8 @@ export function AdminSlotPanel({ open, onClose }: AdminSlotPanelProps) {
                 {t('close')}
               </Button>
             </div>
+              </>
+            )}
           </div>
         </div>
       </AnimatedPanel>

@@ -11,8 +11,7 @@ export function KeyboardHints() {
         <Kbd>→</Kbd>
       </KbdGroup>
       <span className="mx-1.5 text-muted-foreground/50">·</span>
-      <Kbd>Enter</Kbd>
-      <span className="ml-1.5">{t('keyboardHints')}</span>
+      <span>{t('keyboardHints')}</span>
     </p>
   )
 }

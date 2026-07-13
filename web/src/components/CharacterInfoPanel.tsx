@@ -28,12 +28,6 @@ interface CharacterInfoPanelProps {
   onPhotoMode?: () => void
 }
 
-function genderLabel(gender: Character['charinfo']['gender'], male: string, female: string) {
-  if (gender === 1 || gender === 'female') return female
-  if (gender === 0 || gender === 'male') return male
-  return '—'
-}
-
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="ryn-stat">
@@ -83,18 +77,7 @@ export function CharacterInfoPanel({
 
           <div className="ryn-stat-grid">
             <Stat label={t('citizenId')} value={character.citizenid} />
-            <Stat
-              label={t('gender')}
-              value={genderLabel(character.charinfo.gender, t('genderMale'), t('genderFemale'))}
-            />
-            {character.charinfo.birthdate && (
-              <Stat label={t('birthdate')} value={character.charinfo.birthdate} />
-            )}
-            {character.charinfo.nationality && (
-              <Stat label={t('nationality')} value={character.charinfo.nationality} />
-            )}
-            <Stat label={t('job')} value={character.job?.label ?? t('unemployed')} />
-            <Stat label={t('grade')} value={character.job?.grade?.name ?? '—'} />
+            <Stat label={t('slotLabel')} value={String(slotIndex).padStart(2, '0')} />
             <Stat
               label={t('cash')}
               value={`$${(character.money?.cash ?? 0).toLocaleString()}`}
@@ -104,7 +87,6 @@ export function CharacterInfoPanel({
               value={`$${(character.money?.bank ?? 0).toLocaleString()}`}
             />
             <Stat label={t('played')} value={formatPlaytime(character.playtime)} />
-            <Stat label={t('slotLabel')} value={String(slotIndex).padStart(2, '0')} />
           </div>
 
           <div className="ryn-info-actions">

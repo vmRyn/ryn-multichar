@@ -31,7 +31,7 @@ export function SelectHeader({
     <header className={cn('ryn-select-header', hidden && 'ryn-select-header--hidden')} data-animate="chrome">
       <div className="ryn-select-header__brand">
         {logo ? (
-          <img src={logo} alt="" className="ryn-brand-logo" />
+          <img src={logo} alt={brand.name} className="ryn-brand-logo" />
         ) : (
           <span className="ryn-brand-mark" aria-hidden>
             {brand.initial}

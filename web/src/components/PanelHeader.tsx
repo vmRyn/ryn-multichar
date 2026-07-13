@@ -7,6 +7,7 @@ interface PanelHeaderProps {
   subtitle?: ReactNode
   className?: string
   eyebrowClassName?: string
+  titleId?: string
 }
 
 export function PanelHeader({
@@ -15,13 +16,16 @@ export function PanelHeader({
   subtitle,
   className,
   eyebrowClassName,
+  titleId,
 }: PanelHeaderProps) {
   return (
     <header className={cn('mb-6', className)}>
       {eyebrow && (
         <p className={cn('ryn-eyebrow', eyebrowClassName)}>{eyebrow}</p>
       )}
-      <h2 className="ryn-title">{title}</h2>
+      <h2 id={titleId} className="ryn-title">
+        {title}
+      </h2>
       {subtitle && <p className="ryn-subtitle">{subtitle}</p>}
     </header>
   )

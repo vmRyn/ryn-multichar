@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SpawnLocation } from '@/types'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { fetchNui } from '@/hooks/useNui'
 import {
   HistoryIcon,
@@ -40,15 +41,24 @@ const categoryOrder: SpawnCategory[] = ['last', 'housing', 'public']
 export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorProps) {
   const { t } = useLocale()
   const rootRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const choiceRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const [query, setQuery] = useState('')
 
-  const choices = useMemo(() => locations, [locations])
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return locations
+    return locations.filter((loc) => {
+      const haystack = `${loc.label} ${loc.description ?? ''}`.toLowerCase()
+      return haystack.includes(needle)
+    })
+  }, [locations, query])
 
-  const [selectedId, setSelectedId] = useState<string | null>(choices[0]?.id ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(filtered[0]?.id ?? null)
 
   const selected = useMemo(
-    () => choices.find((loc) => loc.id === selectedId) ?? null,
-    [choices, selectedId],
+    () => filtered.find((loc) => loc.id === selectedId) ?? null,
+    [filtered, selectedId],
   )
 
   const groups = useMemo(() => {
@@ -62,17 +72,17 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
       .map((category) => ({
         category,
         label: labels[category],
-        items: choices.filter((loc) => getCategory(loc) === category),
+        items: filtered.filter((loc) => getCategory(loc) === category),
       }))
       .filter((group) => group.items.length > 0)
-  }, [choices, t])
+  }, [filtered, t])
 
   useEffect(() => {
-    if (!selectedId && choices[0]) setSelectedId(choices[0].id)
-    if (selectedId && !choices.some((loc) => loc.id === selectedId)) {
-      setSelectedId(choices[0]?.id ?? null)
+    if (!selectedId && filtered[0]) setSelectedId(filtered[0].id)
+    if (selectedId && !filtered.some((loc) => loc.id === selectedId)) {
+      setSelectedId(filtered[0]?.id ?? null)
     }
-  }, [choices, selectedId])
+  }, [filtered, selectedId])
 
   useEffect(() => {
     if (!rootRef.current) return
@@ -91,20 +101,36 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
   }, [selected])
 
   useEffect(() => {
+    if (!selectedId) return
+    const el = choiceRefs.current.get(selectedId)
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [selectedId])
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (choices.length === 0) return
-      const index = Math.max(0, choices.findIndex((loc) => loc.id === selectedId))
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName.toLowerCase()
+      const isTyping = tag === 'input' || tag === 'textarea' || target?.isContentEditable
+
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onCancel()
+        return
+      }
+
+      if (isTyping || filtered.length === 0) return
+      const index = Math.max(0, filtered.findIndex((loc) => loc.id === selectedId))
 
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        const next = choices[(index + 1) % choices.length]
+        const next = filtered[(index + 1) % filtered.length]
         setSelectedId(next.id)
         playUiSound('slotSelect')
         const el = choiceRefs.current.get(next.id)
         if (el) animateSpawnChoiceSelect(el)
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        const prev = choices[(index - 1 + choices.length) % choices.length]
+        const prev = filtered[(index - 1 + filtered.length) % filtered.length]
         setSelectedId(prev.id)
         playUiSound('slotSelect')
         const el = choiceRefs.current.get(prev.id)
@@ -112,15 +138,12 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
       } else if (e.key === 'Enter' && selectedId) {
         e.preventDefault()
         onConfirm(selectedId)
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        onCancel()
       }
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [choices, selectedId, onConfirm, onCancel])
+  }, [filtered, selectedId, onConfirm, onCancel])
 
   const selectLocation = (id: string) => {
     setSelectedId(id)
@@ -128,6 +151,11 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
     const el = choiceRefs.current.get(id)
     if (el) animateSpawnChoiceSelect(el)
   }
+
+  const emptyMessage =
+    locations.length === 0
+      ? t('noSpawnLocations')
+      : t('noSpawnResults')
 
   return (
     <div ref={rootRef} className="ryn-spawn-screen" data-animate="spawn-panel">
@@ -143,13 +171,28 @@ export function SpawnSelector({ locations, onConfirm, onCancel }: SpawnSelectorP
           </span>
           <div>
             <p className="ryn-spawn-rail__title">{t('chooseLocation')}</p>
-            <p className="ryn-spawn-rail__hint-top">{t('spawnSubtitle')}</p>
+            <p className="ryn-spawn-rail__hint-top">
+              {t('spawnSubtitle')}
+              {' · '}
+              {t('spawnCount', { count: locations.length })}
+            </p>
           </div>
         </div>
 
-        <div className="ryn-spawn-rail__list">
+        {locations.length > 3 && (
+          <div className="ryn-spawn-rail__search">
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t('searchSpawns')}
+              autoComplete="off"
+            />
+          </div>
+        )}
+
+        <div ref={listRef} className="ryn-spawn-rail__list">
           {groups.length === 0 ? (
-            <p className="ryn-spawn-empty">{t('noSpawnResults')}</p>
+            <p className="ryn-spawn-empty">{emptyMessage}</p>
           ) : (
             groups.map((group) => (
               <div key={group.category} className="ryn-spawn-rail__group">

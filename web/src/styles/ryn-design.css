@@ -957,6 +957,10 @@
   color: var(--ryn-text-muted);
 }
 
+.ryn-spawn-rail__search {
+  padding: 0 14px 10px;
+}
+
 .ryn-spawn-rail__list {
   flex: 1 1 auto;
   min-height: 0;

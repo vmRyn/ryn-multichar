@@ -46,6 +46,7 @@ function MulticharApp({
   const [selectedCitizenId, setSelectedCitizenId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Character | null>(null)
   const [deleteConfirmName, setDeleteConfirmName] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const [infoCharacter, setInfoCharacter] = useState<Character | null>(null)
   const [theme, setTheme] = useState<UITheme | null>(dev ? demoTheme : null)
   const [features, setFeatures] = useState<FeatureFlags>(dev ? { photoMode: true, scenePoses: true } : {})
@@ -229,10 +230,11 @@ function MulticharApp({
   }, [])
 
   const handleConfirmDelete = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || deleting) return
     const fullName = getFullName(deleteTarget.charinfo)
     if (deleteConfirmName.trim() !== fullName) return
 
+    setDeleting(true)
     try {
       const result = await fetchNui<{ success: boolean; error?: string }>('deleteCharacter', {
         citizenid: deleteTarget.citizenid,
@@ -242,6 +244,7 @@ function MulticharApp({
         playUiSound('confirm')
         notifySuccess(t('toastDeleted'), t('toastDeletedDesc'))
         setDeleteTarget(null)
+        setDeleteConfirmName('')
         await loadCharacters()
       } else if (result?.error === 'name_mismatch') {
         notifyError(t('toastDeleteNameMismatch'), t('toastDeleteNameMismatchDesc'))
@@ -250,6 +253,8 @@ function MulticharApp({
       }
     } catch {
       notifyError(t('toastError'), t('toastErrorDesc'))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -369,7 +374,9 @@ function MulticharApp({
       return
     }
     if (deleteTarget) {
+      if (deleting) return
       setDeleteTarget(null)
+      setDeleteConfirmName('')
       playUiSound('transition')
       return
     }
@@ -388,11 +395,17 @@ function MulticharApp({
       playUiSound('transition')
       setScreen('characterSelect')
     }
-  }, [screen, deleteTarget, infoCharacter, photoModeActive, activeSlot])
+  }, [screen, deleteTarget, infoCharacter, photoModeActive, activeSlot, deleting])
 
   useKeyboardNav({
     enabled: visible && screen === 'characterSelect' && !deleteOpen && !infoOpen && !photoModeActive,
-    escapeEnabled: visible,
+    // Spawn + photo own Escape; avoid double-firing cancel/close.
+    escapeEnabled:
+      visible &&
+      !photoModeActive &&
+      screen !== 'spawnSelect' &&
+      screen !== 'creation' &&
+      !adminOpen,
     screen,
     activeSlot,
     slotLimit,
@@ -491,11 +504,12 @@ function MulticharApp({
         />
       )}
 
-      <RynModal open={deleteOpen} onClose={handleBack} animationKey="delete" tone="danger">
+      <RynModal open={deleteOpen} onClose={handleBack} animationKey="delete" tone="danger" labelledBy="ryn-delete-title">
         {deleteTarget && (
           <DeleteCharacterModal
             character={deleteTarget}
             confirmName={deleteConfirmName}
+            deleting={deleting}
             onConfirmNameChange={setDeleteConfirmName}
             onConfirm={handleConfirmDelete}
             onClose={handleBack}
@@ -503,7 +517,7 @@ function MulticharApp({
         )}
       </RynModal>
 
-      <RynModal open={infoOpen} onClose={handleBack} animationKey="info">
+      <RynModal open={infoOpen} onClose={handleBack} animationKey="info" labelledBy="ryn-info-title">
         {infoCharacter && (
           <CharacterInfoModal
             character={infoCharacter}

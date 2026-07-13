@@ -3,6 +3,7 @@ import type { Character, PosePreset, ScenePreset } from '@/types'
 import { fetchNui, getFullName } from '@/hooks/useNui'
 import { useLocale } from '@/hooks/useLocale'
 import { cn } from '@/lib/utils'
+import { notifyError } from '@/lib/toast'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -95,6 +96,10 @@ export function PhotoModeOverlay({
     })
   }, [onUiHiddenChange])
 
+  const handleReset = useCallback(() => {
+    fetchNui('photoModeReset').catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (!active) return
 
@@ -102,6 +107,14 @@ export function PhotoModeOverlay({
       if (e.key === 'h' || e.key === 'H') {
         e.preventDefault()
         toggleUiHidden()
+        return
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        const target = e.target as HTMLElement | null
+        const tag = target?.tagName.toLowerCase()
+        if (tag === 'input' || tag === 'textarea' || target?.isContentEditable) return
+        e.preventDefault()
+        handleReset()
         return
       }
       if (e.key === 'Escape') {
@@ -117,7 +130,7 @@ export function PhotoModeOverlay({
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [active, handleClose, onUiHiddenChange, toggleUiHidden, uiHidden])
+  }, [active, handleClose, handleReset, onUiHiddenChange, toggleUiHidden, uiHidden])
 
   const sendInput = useCallback((payload: { yaw?: number; pitch?: number; zoom?: number; fov?: number }) => {
     fetchNui('photoModeInput', payload).catch(() => {})
@@ -144,10 +157,6 @@ export function PhotoModeOverlay({
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault()
     sendInput({ zoom: e.deltaY > 0 ? 0.12 : -0.12 })
-  }
-
-  const handleReset = () => {
-    fetchNui('photoModeReset').catch(() => {})
   }
 
   const handlePoseChange = (poseId: string) => {
@@ -197,7 +206,11 @@ export function PhotoModeOverlay({
       })
       if (result?.success) {
         onPoseSaved(character.citizenid, selectedPose, sceneToSave)
+      } else {
+        notifyError(t('poseSaveFailed'), t('poseSaveFailedDesc'))
       }
+    } catch {
+      notifyError(t('poseSaveFailed'), t('poseSaveFailedDesc'))
     } finally {
       setSaving(false)
     }
@@ -250,7 +263,7 @@ export function PhotoModeOverlay({
                 disabled={switchingScene}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('selectPlaceholder')} />
+                  <SelectValue placeholder={switchingScene ? t('switchingScene') : t('selectPlaceholder')} />
                 </SelectTrigger>
                 <SelectPopup>
                   {scenePresets.map((preset) => (
@@ -298,7 +311,7 @@ export function PhotoModeOverlay({
             >
               <EyeOffIcon />
             </Button>
-            <Button variant="outline" size="icon-lg" onClick={handleReset} aria-label={t('resetCamera')}>
+            <Button variant="outline" size="icon-lg" onClick={handleReset} aria-label={t('resetCamera')} title={`${t('resetCamera')} (R)`}>
               <RotateCcwIcon />
             </Button>
             <Button variant="outline" size="lg" className="flex-1" onClick={handleClose}>

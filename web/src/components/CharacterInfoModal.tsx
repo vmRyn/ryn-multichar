@@ -10,10 +10,15 @@ interface CharacterInfoModalProps {
   onClose: () => void
 }
 
-function genderLabel(gender: Character['charinfo']['gender'], male: string, female: string) {
+function genderLabel(
+  gender: Character['charinfo']['gender'],
+  male: string,
+  female: string,
+  fallback: string,
+) {
   if (gender === 1 || gender === 'female') return female
   if (gender === 0 || gender === 'male') return male
-  return '—'
+  return fallback
 }
 
 function initials(character: Character) {
@@ -32,7 +37,9 @@ export function CharacterInfoModal({ character, onPlay, onClose }: CharacterInfo
           <InfoIcon className="size-3.5" strokeWidth={2.25} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="ryn-side-panel__title">{t('characterInfo')}</p>
+          <p id="ryn-info-title" className="ryn-side-panel__title">
+            {t('characterInfo')}
+          </p>
           <p className="ryn-side-panel__hint">{t('characterInfoHint')}</p>
         </div>
         <button type="button" className="ryn-modal-close" onClick={onClose} aria-label={t('close')}>
@@ -62,7 +69,7 @@ export function CharacterInfoModal({ character, onPlay, onClose }: CharacterInfo
         <div className="ryn-stat">
           <span className="ryn-stat__label">{t('gender')}</span>
           <span className="ryn-stat__value">
-            {genderLabel(character.charinfo.gender, t('genderMale'), t('genderFemale'))}
+            {genderLabel(character.charinfo.gender, t('genderMale'), t('genderFemale'), t('notAvailable'))}
           </span>
         </div>
         {character.charinfo.birthdate && (
@@ -83,7 +90,7 @@ export function CharacterInfoModal({ character, onPlay, onClose }: CharacterInfo
         </div>
         <div className="ryn-stat">
           <span className="ryn-stat__label">{t('grade')}</span>
-          <span className="ryn-stat__value">{character.job?.grade?.name ?? '—'}</span>
+          <span className="ryn-stat__value">{character.job?.grade?.name ?? t('notAvailable')}</span>
         </div>
         <div className="ryn-stat">
           <span className="ryn-stat__label">{t('cash')}</span>

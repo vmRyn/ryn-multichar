@@ -41,7 +41,8 @@ export function useKeyboardNav({
         tag === 'select' ||
         target?.isContentEditable
 
-      if (escapeEnabled && event.key === 'Escape' && !isTyping) {
+      // Escape always closes overlays/screens — even while typing in a modal field.
+      if (escapeEnabled && event.key === 'Escape') {
         event.preventDefault()
         onBack()
         return

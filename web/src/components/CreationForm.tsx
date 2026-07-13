@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CreationField } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,7 +36,7 @@ function validateFields(
   const errors: Record<string, string> = {}
   for (const field of fields) {
     if (field.required && !formData[field.name]?.trim()) {
-      errors[field.name] = `${field.label} is required`
+      errors[field.name] = 'required'
     }
   }
   return errors
@@ -50,10 +50,21 @@ function getInitialFormData(fields: CreationField[]): Record<string, string> {
   const initial: Record<string, string> = {}
   for (const field of fields) {
     if (field.name === 'nationality') {
-      initial[field.name] = 'American'
+      const firstOption = field.options?.[0]
+      if (firstOption) initial[field.name] = firstOption
     }
   }
   return initial
+}
+
+function isFormDirty(fields: CreationField[], formData: Record<string, string>) {
+  const initial = getInitialFormData(fields)
+  for (const field of fields) {
+    const current = (formData[field.name] ?? '').trim()
+    const baseline = (initial[field.name] ?? '').trim()
+    if (current !== baseline) return true
+  }
+  return false
 }
 
 export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: CreationFormProps) {
@@ -62,17 +73,42 @@ export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: Creation
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [submitting, setSubmitting] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
 
   const isValid = useMemo(
     () => Object.keys(validateFields(fields, formData)).length === 0,
     [fields, formData],
   )
 
+  const dirty = useMemo(() => isFormDirty(fields, formData), [fields, formData])
   const slotLabel = String(slotIndex).padStart(2, '0')
 
   const markTouched = (name: string) => {
     setTouched((prev) => ({ ...prev, [name]: true }))
   }
+
+  const requestCancel = useCallback(() => {
+    if (submitting) return
+    if (dirty) {
+      setConfirmDiscard(true)
+      return
+    }
+    onCancel()
+  }, [dirty, onCancel, submitting])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      if (confirmDiscard) {
+        setConfirmDiscard(false)
+        return
+      }
+      requestCancel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [confirmDiscard, requestCancel])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -189,41 +225,71 @@ export function CreationForm({ slotIndex, fields, onSubmit, onCancel }: Creation
   const hasNamePair = nameFields.length === 2
 
   return (
-    <ScreenPanel animationKey="creation" onBackdropClick={onCancel}>
-      <form onSubmit={handleSubmit} noValidate className="ryn-flow-form">
-        <PanelHeader
-          eyebrow={t('createSlotMeta', { slot: slotLabel })}
-          title={t('createIdentity')}
-          subtitle={t('createSubtitle')}
-          className="mb-5"
-        />
-
-        {hasNamePair ? (
-          <>
-            <p className="ryn-form-section">{t('createSectionIdentity')}</p>
-            <div className="ryn-form-grid mb-4">
-              {nameFields.map((field) => renderField(field))}
-            </div>
-            {detailFields.length > 0 && (
-              <>
-                <p className="ryn-form-section">{t('createSectionDetails')}</p>
-                <div className="flex flex-col gap-4">{detailFields.map((field) => renderField(field))}</div>
-              </>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col gap-4">{fields.map((field) => renderField(field))}</div>
-        )}
-
-        <div className="ryn-screen-footer">
-          <Button className="ryn-btn-play flex-1" size="lg" type="submit" disabled={!isValid || submitting}>
-            {submitting ? t('creating') : t('create')}
-          </Button>
-          <Button size="lg" variant="outline" type="button" onClick={onCancel} disabled={submitting}>
-            {t('cancel')}
-          </Button>
+    <ScreenPanel animationKey="creation" onBackdropClick={requestCancel} labelledBy="ryn-create-title">
+      {confirmDiscard ? (
+        <div className="ryn-flow-form">
+          <PanelHeader
+            title={t('discardChanges')}
+            subtitle={t('discardChangesDesc')}
+            className="mb-5"
+          />
+          <div className="ryn-screen-footer">
+            <Button
+              className="flex-1"
+              size="lg"
+              variant="destructive"
+              type="button"
+              onClick={onCancel}
+            >
+              {t('discardConfirm')}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              type="button"
+              onClick={() => setConfirmDiscard(false)}
+            >
+              {t('keepEditing')}
+            </Button>
+          </div>
         </div>
-      </form>
+      ) : (
+        <form onSubmit={handleSubmit} noValidate className="ryn-flow-form">
+          <PanelHeader
+            eyebrow={t('createSlotMeta', { slot: slotLabel })}
+            title={t('createIdentity')}
+            subtitle={t('createSubtitle')}
+            className="mb-5"
+            titleId="ryn-create-title"
+          />
+
+          {hasNamePair ? (
+            <>
+              <p className="ryn-form-section">{t('createSectionIdentity')}</p>
+              <div className="ryn-form-grid mb-4">
+                {nameFields.map((field) => renderField(field))}
+              </div>
+              {detailFields.length > 0 && (
+                <>
+                  <p className="ryn-form-section">{t('createSectionDetails')}</p>
+                  <div className="flex flex-col gap-4">{detailFields.map((field) => renderField(field))}</div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col gap-4">{fields.map((field) => renderField(field))}</div>
+          )}
+
+          <div className="ryn-screen-footer">
+            <Button className="ryn-btn-play flex-1" size="lg" type="submit" disabled={!isValid || submitting}>
+              {submitting ? t('creating') : t('create')}
+            </Button>
+            <Button size="lg" variant="outline" type="button" onClick={requestCancel} disabled={submitting}>
+              {t('cancel')}
+            </Button>
+          </div>
+        </form>
+      )}
     </ScreenPanel>
   )
 }
